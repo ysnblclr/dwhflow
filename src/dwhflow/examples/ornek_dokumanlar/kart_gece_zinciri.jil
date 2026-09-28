@@ -1,0 +1,29 @@
+/* Kart işlemleri gece zinciri */
+insert_job: BOX_KART_GECE   job_type: BOX
+start_times: "01:00"
+days_of_week: all
+
+insert_job: EXT_KART   job_type: CMD
+box_name: BOX_KART_GECE
+command: /etl/bin/ext_kart.sh
+description: "Kart islem extract"
+
+insert_job: MFT_KART   job_type: CMD
+box_name: BOX_KART_GECE
+condition: s(EXT_KART)
+
+insert_job: TPT_STG_KART   job_type: CMD
+box_name: BOX_KART_GECE
+condition: s(MFT_KART)
+
+insert_job: SP_ODS_KART   job_type: CMD
+condition: s(TPT_STG_KART)
+
+insert_job: LOAD_F_KART_ISLEM   job_type: CMD
+condition: s(SP_ODS_KART) & s(LOAD_D_MUSTERI)
+
+insert_job: LOAD_MART_KART_OZET   job_type: CMD
+condition: s(LOAD_F_KART_ISLEM)
+
+insert_job: EXP_BDDK   job_type: CMD
+condition: s(LOAD_MART_KART_OZET)

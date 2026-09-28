@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dwhflow"
+version = "0.1.0"
+description = "Veri ambarı dokümanlarını uçtan uca etkileşimli akış diyagramlarına çevirir"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+keywords = ["data-warehouse", "lineage", "etl", "data-flow", "sttm", "archify"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+]
+
+# Tek `pip install .` ile tüm uygulama çalışsın. Hepsi hazır tekerlek (wheel) olarak
+# gelir; derleyici gerekmez. Diyagram üretimi ayrıca Node.js 18+ ister (Python paketi
+# değil; `dwhflow doctor` denetler). Görüntüleme için yalnız tarayıcı yeter.
+dependencies = [
+    # çekirdek: model, depo, graf, doğrulama, CLI
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "networkx>=3.2",
+    "typer>=0.12",
+    # doküman okuyucular
+    "openpyxl>=3.1",             # Excel / CSV
+    "pypdf>=4.0",                # PDF metni
+    "sqlglot>=25.0",             # SQL soy analizi
+    # isteğe bağlı LLM katmanı (OpenAI uyumlu HTTP)
+    "httpx>=0.26",
+    # web uygulaması
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "python-multipart>=0.0.13",  # 0.0.13'te içe aktarma adı python_multipart oldu
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
+# Canlı metadata okuma (planlı, M2b). Varsayılanda yok: pyodbc sistemde ODBC
+# sürücü başlıkları ister ve herkesin veritabanı bağlantısı olmayacak.
+db = ["pyodbc>=5.0"]
+
+[project.scripts]
+dwhflow = "dwhflow.cli:app"
+
+# Arayüz dosyaları (static/) ve örnek model (examples/) paket dizininin içinde
+# durduğu için tekere otomatik dahil olurlar; ayrıca force-include gerekmez.
+[tool.hatch.build.targets.wheel]
+packages = ["src/dwhflow"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/dwhflow", "tests", "README.md", "PLAN.md", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# (str, Enum) bilinçli: StrEnum'a geçmek str()/format çıktısını değiştirir.
+ignore = ["UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# Örnek doküman üreticisi uzun Türkçe cümleler içeriyor (veri, kod değil).
+"scripts/ornek_dokuman_uret.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

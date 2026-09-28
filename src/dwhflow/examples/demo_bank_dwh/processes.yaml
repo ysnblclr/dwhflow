@@ -1,0 +1,308 @@
+processes:
+
+  # --- Desen 2: mainframe → binary dosya → MFT → decode → loader → staging --
+  job_cb_extract:
+    name: CB_ACCT_EXTRACT
+    kind: batch_job
+    layer: interface
+    system: sys_cb
+    tool: JCL
+    description: VSAM hesap dosyasını okuyup sabit uzunluklu EBCDIC dosya üretir
+    criticality: 5
+    owner: Core Banking Ekibi
+    schedule: { start_times: ["01:15"], days_of_week: [mon, tue, wed, thu, fri, sat, sun] }
+    runtime: { avg_min: 25, p50_min: 24, p95_min: 38, typical_rows: 4200000 }
+    restartable: true
+    idempotent: true
+    resources: { mainframe_initiator: 1 }
+
+  job_mft_acct:
+    name: MFT_ACCT_TRANSFER
+    kind: file_transfer
+    layer: interface
+    system: sys_mft
+    tool: MFT
+    description: Dosyayı mainframe'den DWH sunucusuna taşır
+    criticality: 5
+    runtime: { avg_min: 8, p50_min: 7, p95_min: 19 }
+    restartable: true
+    idempotent: true
+    retry: { max_attempts: 3, delay_min: 5 }
+    resources: { mft_bandwidth: 1 }
+
+  job_decode_acct:
+    name: ACCT_EBCDIC_DECODE
+    kind: decoder
+    layer: interface
+    system: sys_dwh
+    tool: Python
+    description: Copybook'a göre EBCDIC→ASCII çevirir, COMP-3 alanları açar
+    criticality: 5
+    runtime: { avg_min: 6, p50_min: 6, p95_min: 11 }
+    restartable: true
+    idempotent: true
+    code_ref: scripts/decode_acctd.py
+
+  job_load_acct:
+    name: TPT_LOAD_STG_ACCOUNT
+    kind: loader_utility
+    layer: staging
+    system: sys_dwh
+    tool: Teradata TPT
+    description: ASCII dosyayı staging tablosuna yükler, hatalı kayıtları reject tablosuna atar
+    criticality: 5
+    load_strategy: truncate_load
+    delta_method: file_stamp
+    runtime: { avg_min: 18, p50_min: 17, p95_min: 31, typical_rows: 4200000 }
+    restartable: true
+    idempotent: true
+    parallelism: 4
+    resources: { tpt_slot: 1, db_load_slot: 2 }
+    code_ref: scripts/load_stg_account.tpt
+
+  # --- Desen 1: kaynak → ODBC → staging (ETL aracı pull eder) ---------------
+  job_ext_customer:
+    name: INF_EXTRACT_CUSTOMER
+    kind: etl_mapping
+    layer: staging
+    system: sys_dwh
+    tool: Informatica PowerCenter
+    description: CRM'den ODBC ile doğrudan okur, staging'e tam yükler
+    criticality: 4
+    load_strategy: full
+    schedule: { start_times: ["02:00"] }
+    runtime: { avg_min: 12, p50_min: 11, p95_min: 22, typical_rows: 1800000 }
+    restartable: true
+    idempotent: true
+    resources: { etl_session: 1 }
+    attrs: { connection: ODBC/CRM_PROD, mapping: m_STG_CUSTOMER }
+
+  # --- Desen 3: CDC → staging ----------------------------------------------
+  job_cdc_txn:
+    name: CDC_TRANSACTION
+    kind: etl_mapping
+    layer: staging
+    system: sys_dwh
+    tool: Informatica CDC
+    description: Hareket tablosunu log tabanlı CDC ile sürekli okur
+    criticality: 4
+    load_strategy: cdc
+    delta_method: cdc_log
+    schedule: { event: "sürekli — 15 dakikalık mikro-batch" }
+    runtime: { avg_min: 4, p50_min: 3, p95_min: 12 }
+    restartable: true
+    idempotent: true
+    resources: { etl_session: 1 }
+
+  # --- Kontrol katmanı (ABC) ------------------------------------------------
+  job_set_watermark:
+    name: SET_BATCH_WATERMARK
+    kind: shell_script
+    layer: staging
+    system: sys_dwh
+    description: Yükleme başarılıysa watermark'ı ilerletir
+    criticality: 4
+    runtime: { avg_min: 1, p50_min: 1 }
+    restartable: true
+    idempotent: true
+
+  job_dq_account:
+    name: DQ_STG_ACCOUNT
+    kind: dq_check
+    layer: staging
+    system: sys_dwh
+    description: Zorunlu alan, tip ve referans kontrolleri
+    criticality: 4
+    runtime: { avg_min: 4, p50_min: 4 }
+    restartable: true
+    idempotent: true
+
+  job_recon_acct:
+    name: RECON_ACCT_FILE_VS_STG
+    kind: reconciliation
+    layer: staging
+    system: sys_dwh
+    description: Dosya trailer kaydındaki satır sayısı ile tablo satır sayısını karşılaştırır
+    criticality: 5
+    runtime: { avg_min: 3, p50_min: 2 }
+    restartable: true
+    idempotent: true
+
+  # --- Desen 4: katmanlı dönüşüm -------------------------------------------
+  job_ods_account:
+    name: SP_LOAD_ODS_ACCOUNT
+    kind: stored_procedure
+    layer: ods
+    system: sys_dwh
+    tool: Teradata SP
+    description: Staging'den ODS'e merge eder, watermark'tan sonrasını alır
+    criticality: 4
+    load_strategy: merge
+    delta_method: watermark
+    watermark_column: LOAD_DT
+    runtime: { avg_min: 22, p50_min: 21, p95_min: 40 }
+    restartable: true
+    idempotent: true
+    resources: { db_load_slot: 2 }
+
+  job_ods_customer:
+    name: SP_LOAD_ODS_CUSTOMER
+    kind: stored_procedure
+    layer: ods
+    system: sys_dwh
+    tool: Teradata SP
+    criticality: 3
+    load_strategy: merge
+    delta_method: watermark
+    watermark_column: LOAD_DT
+    runtime: { avg_min: 9, p50_min: 8, p95_min: 15 }
+    restartable: true
+    idempotent: true
+
+  job_dq_ods_account:
+    name: DQ_ODS_ACCOUNT
+    kind: dq_check
+    layer: ods
+    system: sys_dwh
+    description: ODS bakiye toplamı ile staging toplamını karşılaştırır
+    criticality: 4
+    runtime: { avg_min: 3, p50_min: 3 }
+    restartable: true
+    idempotent: true
+
+  job_core_balance:
+    name: SP_LOAD_CORE_BALANCE_HIST
+    kind: stored_procedure
+    layer: core
+    system: sys_dwh
+    tool: Teradata SP
+    description: ODS'teki güncel bakiyeyi tarihsel çekirdek tabloya ekler (gün bazlı historization)
+    criticality: 4
+    load_strategy: append
+    delta_method: watermark
+    watermark_column: VALID_FROM
+    runtime: { avg_min: 11, p50_min: 11, p95_min: 19, typical_rows: 4200000 }
+    restartable: true
+    idempotent: true
+    resources: { db_load_slot: 2 }
+
+  job_dim_account:
+    name: LOAD_D_ACCOUNT
+    kind: sql_script
+    layer: mart
+    system: sys_dwh
+    description: Hesap boyutunu günceller (SCD1 — üzerine yazar)
+    criticality: 3
+    load_strategy: scd1
+    runtime: { avg_min: 9, p50_min: 8, p95_min: 14 }
+    restartable: true
+    idempotent: true
+    code_ref: sql/load_d_account.sql
+
+  job_dim_customer:
+    name: LOAD_D_CUSTOMER
+    kind: sql_script
+    layer: mart
+    system: sys_dwh
+    description: Müşteri boyutunu SCD2 ile günceller, değişeni hash karşılaştırmasıyla bulur
+    criticality: 3
+    load_strategy: scd2
+    delta_method: hash_compare
+    runtime: { avg_min: 13, p50_min: 12, p95_min: 25 }
+    restartable: true
+    idempotent: true
+    code_ref: sql/load_d_customer.sql
+
+  # --- Desen 5: N tablo JOIN → hedef tablo ---------------------------------
+  job_fact_balance:
+    name: LOAD_F_DAILY_BALANCE
+    kind: sql_script
+    layer: mart
+    system: sys_dwh
+    description: >
+      ODS hesap + hesap boyutu + müşteri boyutu + hareketleri birleştirip günlük
+      bakiye fact tablosuna yazar. Yalnızca STATUS='A' hesaplar alınır.
+    criticality: 5
+    load_strategy: append
+    runtime: { avg_min: 35, p50_min: 33, p95_min: 58, typical_rows: 4200000 }
+    restartable: true
+    idempotent: true
+    parallelism: 8
+    resources: { db_load_slot: 4 }
+    code_ref: sql/load_f_daily_balance.sql
+
+  job_recon_fact:
+    name: RECON_FACT_VS_ODS
+    kind: reconciliation
+    layer: mart
+    system: sys_dwh
+    description: Fact tablosundaki bakiye toplamını ODS ile mutabakat eder
+    criticality: 5
+    runtime: { avg_min: 5, p50_min: 4 }
+    restartable: true
+    idempotent: true
+
+  job_agg_risk:
+    name: LOAD_MART_RISK_DAILY
+    kind: sql_script
+    layer: mart
+    system: sys_dwh
+    description: Segment bazında risk özetini üretir
+    criticality: 5
+    load_strategy: truncate_load
+    runtime: { avg_min: 14, p50_min: 13, p95_min: 26 }
+    restartable: true
+    idempotent: true
+    sla: { target_time: "06:00", description: "Regülatör bildirimi öncesi hazır olmalı" }
+    code_ref: sql/load_mart_risk_daily.sql
+
+  job_dq_mart:
+    name: DQ_MART_RISK_DAILY
+    kind: dq_check
+    layer: mart
+    system: sys_dwh
+    description: Segment bazında tutar kontrolü ve eksik segment tespiti
+    criticality: 5
+    runtime: { avg_min: 2, p50_min: 2 }
+    restartable: true
+    idempotent: true
+
+  # --- Desen 6/7: DWH → extract dosyası → downstream, ayrıca BI panosu ------
+  job_ext_reg:
+    name: BTEQ_EXPORT_REG_DAILY
+    kind: extract_job
+    layer: consumption
+    system: sys_dwh
+    tool: BTEQ
+    description: Risk özetini regülatör formatında CSV dosyaya çıkarır
+    criticality: 5
+    runtime: { avg_min: 7, p50_min: 6, p95_min: 12 }
+    restartable: true
+    idempotent: true
+    sla: { target_time: "07:00", description: "Dosya 07:00'da MFT kuyruğunda olmalı" }
+    code_ref: scripts/export_reg_daily.bteq
+
+  job_mft_reg:
+    name: MFT_REG_DELIVERY
+    kind: file_transfer
+    layer: consumption
+    system: sys_mft
+    tool: MFT
+    description: Bildirim dosyasını regülatöre teslim eder
+    criticality: 5
+    runtime: { avg_min: 4, p50_min: 3, p95_min: 15 }
+    restartable: true
+    idempotent: false
+    retry: { max_attempts: 5, delay_min: 10 }
+
+  job_bi_refresh:
+    name: BI_RISK_DASHBOARD_REFRESH
+    kind: batch_job
+    layer: consumption
+    system: sys_bi
+    tool: BI Extract
+    description: Risk panosunun veri kaynağını yeniler
+    criticality: 4
+    runtime: { avg_min: 6, p50_min: 5, p95_min: 13 }
+    restartable: true
+    idempotent: true

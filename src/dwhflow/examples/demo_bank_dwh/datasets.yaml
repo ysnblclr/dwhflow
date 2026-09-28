@@ -1,0 +1,301 @@
+datasets:
+
+  # ---------------------------------------------------------------- SOURCE --
+  src_cb_account:
+    name: ACCOUNT (Core Banking)
+    kind: source_object
+    layer: source
+    system: sys_cb
+    description: VSAM hesap ana dosyası
+    criticality: 5
+    row_estimate: 4200000
+    columns:
+      - { name: ACCT_NO, data_type: CHAR(16), pk: true }
+      - { name: CUST_NO, data_type: CHAR(12) }
+      - { name: BALANCE, data_type: "DECIMAL(15,2)" }
+      - { name: CURRENCY, data_type: CHAR(3) }
+      - { name: OPEN_DATE, data_type: DATE }
+      - { name: STATUS, data_type: CHAR(1), description: "A=aktif, C=kapalı, F=bloke" }
+
+  src_cb_txn:
+    name: TRANSACTION (Core Banking)
+    kind: source_object
+    layer: source
+    system: sys_cb
+    description: Hesap hareketleri — CDC ile okunur
+    criticality: 5
+    daily_growth_rows: 9500000
+
+  src_crm_customer:
+    name: CUSTOMER (CRM)
+    kind: source_object
+    layer: source
+    system: sys_crm
+    description: Müşteri ana verisi, ODBC ile doğrudan okunur
+    criticality: 4
+    row_estimate: 1800000
+    sensitivity: pii
+    columns:
+      - { name: CUST_NO, data_type: VARCHAR(12), pk: true }
+      - { name: FULL_NAME, data_type: VARCHAR(120), sensitivity: pii }
+      - { name: SEGMENT, data_type: VARCHAR(20) }
+      - { name: CITY, data_type: VARCHAR(40) }
+      - { name: BIRTH_DATE, data_type: DATE, sensitivity: pii }
+
+  # ------------------------------------------------------------- INTERFACE --
+  if_acct_daily:
+    name: ACCT_DAILY (EBCDIC)
+    kind: interface_file
+    layer: interface
+    system: sys_cb
+    description: Mainframe'den günlük çıkan sabit uzunluklu binary hesap dosyası
+    criticality: 5
+    size_mb: 1450.0
+    file_spec:
+      format: fixed_width
+      encoding: cp037
+      record_length: 350
+      variable_length: false
+      copybook: copybooks/ACCTD.cpy
+      name_pattern: ACCT_YYYYMMDD.dat
+      expected_arrival: "01:45"
+      has_trailer: true
+    columns:
+      - { name: ACCT_NO, data_type: PIC X(16), pk: true }
+      - { name: CUST_NO, data_type: PIC X(12) }
+      - { name: BALANCE, data_type: PIC S9(13)V99 COMP-3 }
+      - { name: CURRENCY, data_type: PIC X(3) }
+      - { name: OPEN_DATE, data_type: PIC 9(8) }
+      - { name: STATUS, data_type: PIC X(1) }
+
+  lnd_acct_daily:
+    name: ACCT_DAILY (landing, EBCDIC)
+    kind: landing_file
+    layer: interface
+    system: sys_dwh
+    description: MFT ile DWH sunucusuna taşınmış hâli — kodlama hâlâ EBCDIC
+    criticality: 4
+    file_spec:
+      format: fixed_width
+      encoding: cp037
+      record_length: 350
+      name_pattern: ACCT_YYYYMMDD.dat
+      has_trailer: true
+
+  lnd_acct_ascii:
+    name: ACCT_DAILY (landing, ASCII)
+    kind: landing_file
+    layer: interface
+    system: sys_dwh
+    description: Copybook ile çözülüp ASCII'ye dönüştürülmüş, COMP-3 alanlar açılmış
+    criticality: 4
+    file_spec:
+      format: fixed_width
+      encoding: utf-8
+      record_length: 412
+      name_pattern: ACCT_YYYYMMDD.asc
+      has_trailer: true
+
+  # --------------------------------------------------------------- STAGING --
+  stg_account:
+    name: STG_ACCOUNT
+    kind: staging_table
+    layer: staging
+    system: sys_dwh
+    description: Hesap dosyasının ham yüklendiği geçici tablo
+    criticality: 4
+    grain: hesap
+    row_estimate: 4200000
+    retention: 7 gün
+    partitioning: LOAD_DT
+    columns:
+      - { name: ACCOUNT_ID, data_type: VARCHAR(16), pk: true }
+      - { name: CUSTOMER_ID, data_type: VARCHAR(12) }
+      - { name: BALANCE, data_type: "DECIMAL(15,2)" }
+      - { name: CURRENCY, data_type: CHAR(3) }
+      - { name: OPEN_DATE, data_type: DATE }
+      - { name: STATUS, data_type: CHAR(1) }
+      - { name: LOAD_DT, data_type: TIMESTAMP }
+
+  stg_customer:
+    name: STG_CUSTOMER
+    kind: staging_table
+    layer: staging
+    system: sys_dwh
+    criticality: 3
+    grain: müşteri
+    row_estimate: 1800000
+    sensitivity: pii
+    retention: 7 gün
+
+  stg_transaction:
+    name: STG_TRANSACTION
+    kind: staging_table
+    layer: staging
+    system: sys_dwh
+    description: CDC ile gelen hareketler
+    criticality: 3
+    grain: hareket
+    daily_growth_rows: 9500000
+    retention: 3 gün
+
+  rej_account:
+    name: REJ_ACCOUNT
+    kind: reject_table
+    layer: staging
+    system: sys_dwh
+    description: Yüklenemeyen hesap kayıtları (tip/format hatası)
+    criticality: 2
+    retention: 30 gün
+
+  ctl_batch_watermark:
+    name: CTL_BATCH_WATERMARK
+    kind: control_table
+    layer: staging
+    system: sys_dwh
+    description: Delta yükleme için son işlenen zaman damgası (ABC → Control)
+    criticality: 4
+
+  # ------------------------------------------------------------------- ODS --
+  ods_account:
+    name: ODS_ACCOUNT
+    kind: ods_table
+    layer: ods
+    system: sys_dwh
+    description: Entegre, güncel hesap görünümü
+    criticality: 4
+    grain: hesap
+    row_estimate: 4200000
+    columns:
+      - { name: ACCOUNT_ID, data_type: VARCHAR(16), pk: true }
+      - { name: CUSTOMER_ID, data_type: VARCHAR(12) }
+      - { name: BALANCE, data_type: "DECIMAL(15,2)" }
+      - { name: CURRENCY, data_type: CHAR(3) }
+      - { name: OPEN_DATE, data_type: DATE }
+      - { name: STATUS, data_type: CHAR(1) }
+      - { name: VALID_FROM, data_type: TIMESTAMP }
+      - { name: VALID_TO, data_type: TIMESTAMP }
+
+  ods_customer:
+    name: ODS_CUSTOMER
+    kind: ods_table
+    layer: ods
+    system: sys_dwh
+    criticality: 3
+    grain: müşteri
+    sensitivity: pii
+    row_estimate: 1800000
+
+  # ------------------------------------------------------------------ CORE --
+  core_balance_hist:
+    name: CORE_BALANCE_HIST
+    kind: core_table
+    layer: core
+    system: sys_dwh
+    description: >
+      Hesap bakiyesinin tarihsel çekirdek tablosu (3NF). ODS'teki güncel görünüm
+      buraya gün gün biriktirilir; mart katmanı bu tablodan beslenir.
+    criticality: 3
+    grain: gün × hesap
+    daily_growth_rows: 4200000
+    partitioning: BALANCE_DATE
+    columns:
+      - { name: ACCOUNT_ID, data_type: VARCHAR(16), pk: true }
+      - { name: BALANCE_DATE, data_type: DATE, pk: true }
+      - { name: BALANCE, data_type: "DECIMAL(15,2)" }
+      - { name: CURRENCY, data_type: CHAR(3) }
+      - { name: STATUS, data_type: CHAR(1) }
+
+  # ------------------------------------------------------------------ MART --
+  dim_account:
+    name: D_ACCOUNT
+    kind: dimension_table
+    layer: mart
+    system: sys_dwh
+    description: Hesap boyutu (SCD1)
+    criticality: 3
+    grain: hesap
+    columns:
+      - { name: ACCOUNT_KEY, data_type: BIGINT, pk: true }
+      - { name: ACCOUNT_ID, data_type: VARCHAR(16) }
+      - { name: CURRENCY, data_type: CHAR(3) }
+      - { name: STATUS, data_type: CHAR(1) }
+
+  dim_customer:
+    name: D_CUSTOMER
+    kind: dimension_table
+    layer: mart
+    system: sys_dwh
+    description: Müşteri boyutu (SCD2 — tarihsel takip)
+    criticality: 3
+    grain: müşteri × geçerlilik aralığı
+    sensitivity: pii
+    columns:
+      - { name: CUSTOMER_KEY, data_type: BIGINT, pk: true }
+      - { name: CUSTOMER_ID, data_type: VARCHAR(12) }
+      - { name: FULL_NAME, data_type: VARCHAR(120), sensitivity: pii }
+      - { name: SEGMENT, data_type: VARCHAR(20) }
+      - { name: CITY, data_type: VARCHAR(40) }
+      - { name: VALID_FROM, data_type: DATE }
+      - { name: VALID_TO, data_type: DATE }
+
+  fact_daily_balance:
+    name: F_DAILY_BALANCE
+    kind: fact_table
+    layer: mart
+    system: sys_dwh
+    description: Günlük hesap bakiyesi anlık görüntüsü (periodic snapshot)
+    criticality: 5
+    grain: gün × hesap
+    daily_growth_rows: 4200000
+    partitioning: BALANCE_DATE
+    columns:
+      - { name: BALANCE_DATE, data_type: DATE, pk: true }
+      - { name: ACCOUNT_KEY, data_type: BIGINT, pk: true }
+      - { name: CUSTOMER_KEY, data_type: BIGINT }
+      - { name: BALANCE_AMT, data_type: "DECIMAL(18,2)" }
+      - { name: CURRENCY, data_type: CHAR(3) }
+
+  mart_risk_daily:
+    name: MART_RISK_DAILY
+    kind: mart_table
+    layer: mart
+    system: sys_dwh
+    description: Segment bazında günlük risk özeti — regülatör bildiriminin kaynağı
+    criticality: 5
+    grain: gün × segment
+    columns:
+      - { name: RISK_DATE, data_type: DATE, pk: true }
+      - { name: SEGMENT, data_type: VARCHAR(20), pk: true }
+      - { name: TOTAL_BALANCE, data_type: "DECIMAL(20,2)" }
+      - { name: ACCOUNT_COUNT, data_type: BIGINT }
+
+  # ----------------------------------------------------------- CONSUMPTION --
+  ex_reg_daily:
+    name: REG_DAILY.csv
+    kind: export_file
+    layer: consumption
+    system: sys_dwh
+    description: Regülatöre gönderilen günlük bildirim dosyası
+    criticality: 5
+    file_spec:
+      format: csv
+      encoding: utf-8
+      name_pattern: REG_DAILY_YYYYMMDD.csv
+      has_trailer: true
+
+  rpt_risk_dashboard:
+    name: Risk Panosu
+    kind: report
+    layer: consumption
+    system: sys_bi
+    description: Günlük risk panosu — iş birimi sabah 08:00'de bakar
+    criticality: 4
+
+  dwn_regulator:
+    name: Regülatör Bildirimi
+    kind: downstream_system
+    layer: consumption
+    system: sys_reg
+    description: Dosyanın teslim edildiği dış sistem
+    criticality: 5

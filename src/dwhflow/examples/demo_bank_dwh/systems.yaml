@@ -1,0 +1,53 @@
+name: demo_bank_dwh
+
+# Örnek banka veri ambarı. PLAN.md 1.2'deki 7 akış deseninin hepsini içerir:
+#   1. Kaynak → ODBC → staging            (CRM müşteri)
+#   2. Kaynak → binary dosya → MFT → decode → loader → staging  (Core Banking hesap)
+#   3. Kaynak → CDC → staging             (Core Banking hareket)
+#   4. Katmanlı dönüşüm                    staging → ODS → dim/fact
+#   5. N tablo JOIN → hedef tablo          fact_daily_balance, mart_risk_daily
+#   6. DWH → extract dosyası → downstream  regülatör raporu
+#   7. Karma: mart hem dosyaya hem panoya  mart_risk_daily
+
+systems:
+  - id: sys_cb
+    name: Core Banking
+    kind: source
+    description: Mainframe üzerinde çalışan ana bankacılık sistemi
+    host: MFRAME01
+    owner: Core Banking Ekibi
+
+  - id: sys_crm
+    name: CRM
+    kind: source
+    description: Müşteri ilişkileri yönetimi (Oracle)
+    host: CRMDB01
+    owner: CRM Ekibi
+
+  - id: sys_mft
+    name: MFT
+    kind: transfer
+    description: Managed File Transfer — dosya taşıma altyapısı
+    host: MFT01
+
+  - id: sys_dwh
+    name: Kurumsal Veri Ambarı
+    kind: dwh
+    description: Teradata
+    host: TDPROD
+    owner: Veri Ambarı Ekibi
+
+  - id: sys_bi
+    name: BI Platformu
+    kind: bi
+    owner: Raporlama Ekibi
+
+  - id: sys_reg
+    name: Regülatör
+    kind: downstream
+    description: Düzenleyici kuruma gönderilen günlük bildirim
+
+  - id: sys_sched
+    name: AutoSys
+    kind: scheduler
+    description: Batch zamanlayıcı

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DWHFlow — Dokümandan akışa</title>
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark">DWH</span>Flow <small>dokümandan akışa</small></div>
+  <div class="spacer"></div>
+  <span class="chip" id="engine-chip" title="Diyagram motoru durumu">motor denetleniyor…</span>
+  <span class="chip" id="llm-chip">YZ kapalı</span>
+  <button class="btn" id="btn-settings">Ayarlar</button>
+</header>
+
+<main>
+  <section class="card" id="new-run">
+    <h1>Dokümanlarını akışa çevir</h1>
+    <p class="lead">STTM Excel'leri, Word/PDF tasarım dokümanları, SQL betikleri, AutoSys JIL
+      dosyaları, notlar… Hepsini birlikte bırak; araç aynı tabloları birleştirip uçtan uca
+      veri akışını etkileşimli diyagramlar olarak üretir.</p>
+
+    <div class="dropzone" id="dropzone" tabindex="0" role="button"
+         aria-label="Doküman seç ya da sürükle">
+      <div class="big">⇪</div>
+      <div><b>Dosyaları buraya bırak</b> ya da seçmek için tıkla</div>
+      <div class="hint" id="accepted-hint"></div>
+    </div>
+    <input type="file" id="file-input" multiple hidden>
+    <ul class="files" id="file-list"></ul>
+
+    <div class="options">
+      <label class="field">
+        <span>Başlık</span>
+        <input type="text" id="title" placeholder="ör. Kart işlemleri akışı" maxlength="90">
+      </label>
+      <label class="field">
+        <span>Kalite</span>
+        <select id="quality">
+          <option value="showcase">Vitrin (sıkı yerleşim kontrolü)</option>
+          <option value="standard">Standart</option>
+        </select>
+      </label>
+      <label class="field wide">
+        <span>Ek yol diyagramları <em>(isteğe bağlı, satır başına bir tane)</em></span>
+        <textarea id="paths" rows="2" placeholder="SRC_KART_ISLEM > EXP_BDDK_KART"></textarea>
+      </label>
+      <label class="switch" id="llm-switch">
+        <input type="checkbox" id="use-llm">
+        <span>Yapay zekâ ile kuralların çözemediği paragrafları da işle</span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btn-run" disabled>Akışa çevir</button>
+      <span class="muted" id="run-hint">Önce doküman ekle.</span>
+    </div>
+    <div class="alert" id="run-error" hidden></div>
+  </section>
+
+  <section class="card" id="progress" hidden>
+    <h2 id="progress-title">Dönüştürülüyor…</h2>
+    <ol class="log" id="progress-log"></ol>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <div class="result-head">
+      <h2 id="result-title">Sonuç</h2>
+      <a class="btn primary" id="result-open" target="_blank" rel="noopener">Sonuç sayfasını aç</a>
+    </div>
+    <div class="grid" id="result-diagrams"></div>
+    <div class="docs" id="result-docs"></div>
+  </section>
+
+  <section class="card">
+    <h2>Önceki dönüştürmeler</h2>
+    <div id="runs"><p class="muted">yükleniyor…</p></div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <form method="dialog" class="dialog-body" id="settings-form">
+    <h2>Ayarlar</h2>
+    <h3>Yapay zekâ (isteğe bağlı)</h3>
+    <p class="muted">OpenAI uyumlu herhangi bir uç çalışır: Ollama, vLLM, LM Studio… Yapay zekâ
+      yalnızca kuralların çözemediği paragraflara bakar. Önerdiği her akışın kanıt cümlesi
+      dokümanda birebir geçmek zorunda; geçmeyenler reddedilir. Kabul edilenler diyagramda
+      <i>taslak</i> olarak görünür.</p>
+    <label class="switch"><input type="checkbox" id="llm-enabled"><span>Etkin</span></label>
+    <label class="field"><span>Uç adresi</span>
+      <input type="text" id="llm-url" placeholder="http://localhost:11434/v1"></label>
+    <label class="field"><span>Model</span>
+      <input type="text" id="llm-model" placeholder="qwen3:8b"></label>
+    <label class="field"><span>API anahtarının bulunduğu ortam değişkeni</span>
+      <input type="text" id="llm-key-env" placeholder="DWHFLOW_AI_KEY">
+      <em class="muted">Anahtarın kendisi hiçbir yere yazılmaz.</em></label>
+    <label class="field"><span>Zaman aşımı (sn)</span>
+      <input type="number" id="llm-timeout" min="5" max="900"></label>
+    <label class="switch"><input type="checkbox" id="llm-external">
+      <span>Yerel olmayan adrese izin ver <em class="muted">(doküman içeriği makineden çıkar)</em></span></label>
+    <div class="actions">
+      <button class="btn" type="button" id="btn-llm-test">Bağlantıyı test et</button>
+      <button class="btn primary" type="button" id="btn-save">Kaydet</button>
+      <button class="btn" value="cancel">Kapat</button>
+    </div>
+    <div class="alert" id="settings-msg" hidden></div>
+  </form>
+</dialog>
+
+<script type="module" src="/assets/app.js"></script>
+</body>
+</html>

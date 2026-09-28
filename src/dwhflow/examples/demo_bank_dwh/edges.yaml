@@ -1,0 +1,195 @@
+# Kenarlar DAİMA akış yönünde yazılır: source önce, target sonra.
+# precedes = yürütme sırası (source önce koşar, target bekler).
+
+edges:
+
+  # ================= Desen 2: binary dosya zinciri ========================= #
+  - { kind: reads, source: src_cb_account, target: job_cb_extract }
+  - kind: produces_file
+    source: job_cb_extract
+    target: if_acct_daily
+    sources:
+      - file: docs/Interface_ACCT_DAILY.docx
+        locator: "§2.1"
+        extractor: doc
+        confidence: 0.8
+  - { kind: consumes_file, source: if_acct_daily, target: job_mft_acct }
+  - { kind: produces_file, source: job_mft_acct, target: lnd_acct_daily }
+  - { kind: consumes_file, source: lnd_acct_daily, target: job_decode_acct }
+  - { kind: produces_file, source: job_decode_acct, target: lnd_acct_ascii }
+  - { kind: consumes_file, source: lnd_acct_ascii, target: job_load_acct }
+  - kind: writes
+    source: job_load_acct
+    target: stg_account
+    sources:
+      - file: scripts/load_stg_account.tpt
+        extractor: loader:tpt
+        confidence: 1.0
+  - { kind: writes, source: job_load_acct, target: rej_account }
+
+  # ================= Desen 1: ODBC ile doğrudan çekme ====================== #
+  - kind: reads
+    source: src_crm_customer
+    target: job_ext_customer
+    sources:
+      - file: exports/m_STG_CUSTOMER.xml
+        extractor: etl:informatica
+        confidence: 1.0
+  - { kind: writes, source: job_ext_customer, target: stg_customer }
+
+  # ================= Desen 3: CDC ========================================== #
+  - { kind: reads, source: src_cb_txn, target: job_cdc_txn }
+  - { kind: writes, source: job_cdc_txn, target: stg_transaction }
+
+  # ================= Kontrol katmanı (ABC) ================================= #
+  - { kind: writes, source: job_set_watermark, target: ctl_batch_watermark }
+  - { kind: reads, source: stg_account, target: job_dq_account }
+  - { kind: validates, source: job_dq_account, target: stg_account }
+  - { kind: consumes_file, source: if_acct_daily, target: job_recon_acct }
+  - { kind: reads, source: stg_account, target: job_recon_acct }
+  - kind: reconciles
+    source: job_recon_acct
+    target: stg_account
+    attrs: { control: "dosya trailer satır sayısı = tablo satır sayısı" }
+
+  # ================= Desen 4: katmanlı dönüşüm ============================= #
+  - { kind: reads, source: stg_account, target: job_ods_account }
+  - { kind: reads, source: ctl_batch_watermark, target: job_ods_account }
+  - { kind: writes, source: job_ods_account, target: ods_account }
+  - { kind: reads, source: stg_customer, target: job_ods_customer }
+  - { kind: writes, source: job_ods_customer, target: ods_customer }
+  - { kind: reads, source: ods_account, target: job_dq_ods_account }
+  - { kind: validates, source: job_dq_ods_account, target: ods_account }
+  # ODS → çekirdek (3NF tarihsel) → mart
+  - { kind: reads, source: ods_account, target: job_core_balance }
+  - { kind: writes, source: job_core_balance, target: core_balance_hist }
+  - { kind: reads, source: ods_account, target: job_dim_account }
+  - { kind: writes, source: job_dim_account, target: dim_account }
+  - { kind: reads, source: ods_customer, target: job_dim_customer }
+  - { kind: writes, source: job_dim_customer, target: dim_customer }
+
+  # ================= Desen 5: N tablo JOIN → hedef tablo =================== #
+  - kind: reads
+    source: ods_account
+    target: job_fact_balance
+    sources:
+      - file: sql/load_f_daily_balance.sql
+        extractor: sql:sqlglot
+        confidence: 1.0
+  - { kind: reads, source: core_balance_hist, target: job_fact_balance }
+  - { kind: reads, source: dim_account, target: job_fact_balance }
+  - { kind: reads, source: dim_customer, target: job_fact_balance }
+  - { kind: reads, source: stg_transaction, target: job_fact_balance }
+  - { kind: writes, source: job_fact_balance, target: fact_daily_balance }
+  - { kind: reads, source: fact_daily_balance, target: job_recon_fact }
+  - { kind: reads, source: ods_account, target: job_recon_fact }
+  - { kind: reconciles, source: job_recon_fact, target: fact_daily_balance }
+  - { kind: reads, source: fact_daily_balance, target: job_agg_risk }
+  - { kind: reads, source: dim_customer, target: job_agg_risk }
+  - { kind: writes, source: job_agg_risk, target: mart_risk_daily }
+  - { kind: reads, source: mart_risk_daily, target: job_dq_mart }
+  - { kind: validates, source: job_dq_mart, target: mart_risk_daily }
+
+  # ================= Desen 6: DWH → dosya → downstream ==================== #
+  - { kind: reads, source: mart_risk_daily, target: job_ext_reg }
+  - { kind: produces_file, source: job_ext_reg, target: ex_reg_daily }
+  - { kind: consumes_file, source: ex_reg_daily, target: job_mft_reg }
+  - { kind: writes, source: job_mft_reg, target: dwn_regulator }
+
+  # ================= Desen 7: aynı mart panoya da gidiyor ================= #
+  - { kind: reads, source: mart_risk_daily, target: job_bi_refresh }
+  - { kind: writes, source: job_bi_refresh, target: rpt_risk_dashboard }
+  # LLM önerisi örneği: taslak durumda, kanıt cümlesiyle, onay bekliyor.
+  - kind: reads
+    source: dim_customer
+    target: job_bi_refresh
+    status: draft
+    sources:
+      - file: docs/Risk_Panosu_Tasarim.docx
+        locator: "p.3 §1.2"
+        extractor: "llm:qwen3-8b@extract_edges/v3"
+        evidence: "Panoda müşteri segmenti ve şehir kırılımı da gösterilir."
+        confidence: 0.72
+
+  # ================= Yürütme sırası (batch zinciri) ======================== #
+  - kind: precedes
+    source: job_cb_extract
+    target: job_mft_acct
+    sources: [{ file: jil/acct_daily.jil, extractor: scheduler:autosys, confidence: 1.0 }]
+  - { kind: precedes, source: job_mft_acct, target: job_decode_acct }
+  - { kind: precedes, source: job_decode_acct, target: job_load_acct }
+  - { kind: precedes, source: job_load_acct, target: job_dq_account }
+  - { kind: precedes, source: job_dq_account, target: job_recon_acct }
+  - { kind: precedes, source: job_recon_acct, target: job_set_watermark }
+  - { kind: precedes, source: job_set_watermark, target: job_ods_account }
+  - { kind: precedes, source: job_ext_customer, target: job_ods_customer }
+  - { kind: precedes, source: job_ods_account, target: job_dq_ods_account }
+  - { kind: precedes, source: job_dq_ods_account, target: job_dim_account }
+  - { kind: precedes, source: job_dq_ods_account, target: job_core_balance }
+  - { kind: precedes, source: job_core_balance, target: job_fact_balance }
+  - { kind: precedes, source: job_ods_customer, target: job_dim_customer }
+  - { kind: precedes, source: job_dim_account, target: job_fact_balance }
+  - { kind: precedes, source: job_dim_customer, target: job_fact_balance }
+  - { kind: precedes, source: job_cdc_txn, target: job_fact_balance }
+  - { kind: precedes, source: job_fact_balance, target: job_recon_fact }
+  - { kind: precedes, source: job_recon_fact, target: job_agg_risk }
+  - { kind: precedes, source: job_agg_risk, target: job_dq_mart }
+  - { kind: precedes, source: job_dq_mart, target: job_ext_reg }
+  - { kind: precedes, source: job_ext_reg, target: job_mft_reg }
+  - { kind: precedes, source: job_agg_risk, target: job_bi_refresh }
+
+  # ================= Kolon seviyesi lineage (STTM'den) ==================== #
+  # BALANCE alanının uçtan uca yolculuğu
+  - kind: column_maps_to
+    source: src_cb_account#BALANCE
+    target: if_acct_daily#BALANCE
+    transform_type: direct
+    expression: COMP-3 packed decimal olarak yazılır
+    sources: [{ file: docs/STTM_ACCOUNT.xlsx, locator: "Sheet1!B12", extractor: excel_sttm }]
+  - kind: column_maps_to
+    source: if_acct_daily#BALANCE
+    target: stg_account#BALANCE
+    transform_type: cast
+    expression: unpack_comp3(BALANCE) / 100
+    sources: [{ file: docs/STTM_ACCOUNT.xlsx, locator: "Sheet1!B13", extractor: excel_sttm }]
+  - kind: column_maps_to
+    source: stg_account#BALANCE
+    target: ods_account#BALANCE
+    transform_type: direct
+  - kind: column_maps_to
+    source: ods_account#BALANCE
+    target: core_balance_hist#BALANCE
+    transform_type: direct
+    sources: [{ file: sql/load_core_balance_hist.sql, extractor: sql:sqlglot }]
+  - kind: column_maps_to
+    source: core_balance_hist#BALANCE
+    target: fact_daily_balance#BALANCE_AMT
+    transform_type: aggregate
+    expression: SUM(BALANCE)
+    sources: [{ file: sql/load_f_daily_balance.sql, extractor: sql:sqlglot }]
+  - kind: column_maps_to
+    source: fact_daily_balance#BALANCE_AMT
+    target: mart_risk_daily#TOTAL_BALANCE
+    transform_type: aggregate
+    expression: SUM(BALANCE_AMT)
+
+  # ACCOUNT_ID anahtar zinciri
+  - { kind: column_maps_to, source: src_cb_account#ACCT_NO, target: if_acct_daily#ACCT_NO, transform_type: direct }
+  - { kind: column_maps_to, source: if_acct_daily#ACCT_NO, target: stg_account#ACCOUNT_ID, transform_type: direct }
+  - { kind: column_maps_to, source: stg_account#ACCOUNT_ID, target: ods_account#ACCOUNT_ID, transform_type: direct }
+  - { kind: column_maps_to, source: ods_account#ACCOUNT_ID, target: dim_account#ACCOUNT_ID, transform_type: direct }
+  - { kind: column_maps_to, source: dim_account#ACCOUNT_KEY, target: fact_daily_balance#ACCOUNT_KEY, transform_type: lookup }
+  - { kind: column_maps_to, source: dim_customer#CUSTOMER_KEY, target: fact_daily_balance#CUSTOMER_KEY, transform_type: lookup }
+
+  # Indirect lineage: sonuca giren değil, sonucu ETKİLEYEN kolonlar (Gudu SQLFlow fikri)
+  - { kind: column_maps_to, source: ods_account#STATUS, target: core_balance_hist#STATUS, transform_type: direct }
+  - kind: influences
+    source: core_balance_hist#STATUS
+    target: fact_daily_balance#BALANCE_AMT
+    expression: WHERE STATUS = 'A'
+    sources: [{ file: sql/load_f_daily_balance.sql, extractor: sql:sqlglot }]
+  - kind: influences
+    source: dim_customer#SEGMENT
+    target: mart_risk_daily#TOTAL_BALANCE
+    expression: GROUP BY SEGMENT
+    sources: [{ file: sql/load_mart_risk_daily.sql, extractor: sql:sqlglot }]

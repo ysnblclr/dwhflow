@@ -1,0 +1,6 @@
+# Operasyon notları
+
+Müşteri hattı: SRC_MUSTERI -> STG_MUSTERI -> ODS_MUSTERI -> D_MUSTERI
+
+- STG_KART_ISLEM'den ODS_KART_ISLEM'e SP_ODS_KART prosedürüyle merge yapılır.
+- Gece zinciri 01:00'de başlar, 06:00'ya kadar bitmelidir.

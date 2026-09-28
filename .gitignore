@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+
+# CLI çıktıları
+model-out/
+dwhflow-cikti/
+*.dot
+
+# Çalışma alanı: yüklenen dokümanlar, ayarlar, bağlantılar
+.dwhflow/
+
