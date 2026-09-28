@@ -166,10 +166,11 @@ def convert(
     out_dir.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
 
+    # Başlık hem galeride hem diyagram adlarında görünür ("Genel akış — <başlık>").
+    title = options.title or (Path(files[0]).stem if len(files) == 1 else "Doküman akışı")
+
     say("okuma", f"{len(files)} doküman okunuyor")
-    ingested: IngestResult = ingest_files(
-        [Path(f) for f in files], llm=llm, name=options.title or "dokuman-modeli"
-    )
+    ingested: IngestResult = ingest_files([Path(f) for f in files], llm=llm, name=title)
     model = ingested.model
 
     say("model", f"{len(model.datasets)} veri nesnesi, {len(model.processes)} süreç")
@@ -179,7 +180,7 @@ def convert(
     report: dict[str, Any] = {
         "tool": f"DWHFlow {__version__}",
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "title": options.title or (Path(files[0]).stem if files else "DWHFlow"),
+        "title": title,
         "inputs": [Path(f).name for f in files],
         "ingest": ingested.as_dict(),
         "validation": {

@@ -505,6 +505,8 @@ def convert(
     sources = list(inputs or [])
     if ornek:
         sources.append(Path(__file__).resolve().parent / "examples" / "ornek_dokumanlar")
+        if not title and not inputs:
+            title = "Örnek: kredi kartı işlemleri"
     if not sources:
         typer.secho("Doküman ver ya da örneklerle dene:  dwhflow convert --ornek",
                     fg=typer.colors.RED, err=True)
