@@ -32,6 +32,8 @@ dependencies = [
     "openpyxl>=3.1",             # Excel / CSV
     "pypdf>=4.0",                # PDF metni
     "sqlglot>=25.0",             # SQL soy analizi
+    "xlrd>=2.0",                 # eski Excel (.xls)
+    "defusedxml>=0.7",           # güvenilmeyen XML (ETL/zamanlayıcı exportları, Office)
     # isteğe bağlı LLM katmanı (OpenAI uyumlu HTTP)
     "httpx>=0.26",
     # web uygulaması
@@ -45,6 +47,10 @@ dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
 # Canlı metadata okuma (planlı, M2b). Varsayılanda yok: pyodbc sistemde ODBC
 # sürücü başlıkları ister ve herkesin veritabanı bağlantısı olmayacak.
 db = ["pyodbc>=5.0"]
+# Outlook .msg okuma (saf Python ama bağımlılığı çok; varsayılanda yok).
+ofis = ["extract-msg>=0.45"]
+# Özel okuyucusu olmayan biçimler için genel dönüştürücü (büyük; varsayılanda yok).
+evrensel = ["markitdown>=0.1.0"]
 
 [project.scripts]
 dwhflow = "dwhflow.cli:app"
@@ -73,3 +79,4 @@ ignore = ["UP042"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]

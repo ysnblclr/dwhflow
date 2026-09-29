@@ -15,7 +15,8 @@ batch job'a, binary dosyadan ETL'e, DWH tablolarından hedef tablolara kadar.
 - **Çevrimdışı.** Telemetri yok, CDN yok, motorun güncelleme denetimi kapalı.
   Sunucu yalnız `127.0.0.1`'e bağlanır.
 
-Planlar ve gerekçeler: [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (güncel süreç),
+Planlar ve gerekçeler: [PLAN_V2.md](PLAN_V2.md) (sıradaki sürüm: ekranlar, elle müdahale,
+evrensel okuma, LLM ara formatı), [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (güncel süreç),
 [PLAN.md](PLAN.md) (ilk kapsamlı plan).
 
 ---

@@ -35,6 +35,7 @@ from ..model import (
     SourceRef,
     Status,
 )
+from .config import IngestConfig, active
 
 # --------------------------------------------------------------------------- #
 # Metin normalizasyonu
@@ -94,40 +95,38 @@ def make_id(raw: str, taken: set[str]) -> str:
 # Katman ve tür tahmini (DWH adlandırma alışkanlıkları)
 # --------------------------------------------------------------------------- #
 
-_PREFIX_RULES: list[tuple[tuple[str, ...], Layer, DatasetKind]] = [
-    (("SRC_", "SOURCE_", "KAYNAK_"), Layer.SOURCE, DatasetKind.SOURCE_OBJECT),
-    (("LND_", "LANDING_", "RAW_"), Layer.INTERFACE, DatasetKind.LANDING_FILE),
-    (("IF_", "INTF_", "IFC_"), Layer.INTERFACE, DatasetKind.INTERFACE_FILE),
-    (("STG_", "STAGE_", "STAGING_", "ST_", "TMP_", "WRK_"), Layer.STAGING, DatasetKind.STAGING_TABLE),
-    (("CTL_", "CTRL_", "CONTROL_"), Layer.STAGING, DatasetKind.CONTROL_TABLE),
-    (("REJ_", "ERR_", "REJECT_", "HATA_"), Layer.STAGING, DatasetKind.REJECT_TABLE),
-    (("ODS_",), Layer.ODS, DatasetKind.ODS_TABLE),
-    (("CORE_", "DWH_", "EDW_", "HUB_", "LNK_", "LINK_", "SAT_", "HIST_", "TRH_"),
-     Layer.CORE, DatasetKind.CORE_TABLE),
-    (("DIM_", "D_", "DM_DIM_"), Layer.MART, DatasetKind.DIMENSION_TABLE),
-    (("FACT_", "F_", "FCT_", "FT_"), Layer.MART, DatasetKind.FACT_TABLE),
-    (("AGG_", "SUM_", "OZET_"), Layer.MART, DatasetKind.AGGREGATE_TABLE),
-    (("MART_", "DM_", "DMRT_"), Layer.MART, DatasetKind.MART_TABLE),
-    (("RPT_", "REPORT_", "RAPOR_", "DASH_", "PANO_"), Layer.CONSUMPTION, DatasetKind.REPORT),
-    (("EXP_", "EXPORT_", "OUT_", "CIKIS_"), Layer.CONSUMPTION, DatasetKind.EXPORT_FILE),
-    (("ARC_", "ARCH_", "ARSIV_"), Layer.CORE, DatasetKind.ARCHIVE_TABLE),
-]
 _FILE_SUFFIX = re.compile(r"\.(dat|csv|txt|asc|ebc|bin|xml|json|gz|zip|out|fix)$", re.IGNORECASE)
 _FILE_WORDS = ("_FILE", "DOSYA")
 
 
-def infer_layer_kind(name: str) -> tuple[Layer | None, DatasetKind | None]:
-    """Addan katman/tür tahmini. Emin değilse (None, None) — konum sonra karar verir."""
+def explain_name(name: str, config: IngestConfig | None = None) -> dict[str, Any]:
+    """Addan katman/tür tahmini ve **neden** o sonuca varıldığı (ayarlar ekranındaki test kutusu).
+
+    Sıra: dosya uzantısı → kurallar (ayardakiler önce, sonra varsayılanlar) → dosya sözcükleri.
+    Hiçbiri tutmazsa katman akıştaki konumdan belirlenir.
+    """
+    config = config or active()
     key = name_key(name)
     if is_file_name(key):
-        return Layer.INTERFACE, DatasetKind.INTERFACE_FILE
+        return {"layer": Layer.INTERFACE, "kind": DatasetKind.INTERFACE_FILE,
+                "reason": "dosya uzantısı", "rule": None}
     bare = bare_key(key)
-    for prefixes, layer, kind in _PREFIX_RULES:
-        if bare.startswith(prefixes):
-            return layer, kind
+    rule = config.match_rule(bare)
+    if rule is not None:
+        kind = rule.kind or _DEFAULT_KIND[rule.layer]
+        return {"layer": rule.layer, "kind": kind, "reason": rule.describe(),
+                "rule": {"type": rule.type, "value": rule.value, "origin": rule.origin}}
     if _FILE_SUFFIX.search(bare) or any(word in bare for word in _FILE_WORDS):
-        return Layer.INTERFACE, DatasetKind.INTERFACE_FILE
-    return None, None
+        return {"layer": Layer.INTERFACE, "kind": DatasetKind.INTERFACE_FILE,
+                "reason": "addaki dosya sözcüğü", "rule": None}
+    return {"layer": None, "kind": None, "reason": "kural yok; katman akıştaki konumdan belirlenir",
+            "rule": None}
+
+
+def infer_layer_kind(name: str) -> tuple[Layer | None, DatasetKind | None]:
+    """Addan katman/tür tahmini. Emin değilse (None, None) — konum sonra karar verir."""
+    result = explain_name(name)
+    return result["layer"], result["kind"]
 
 
 _DEFAULT_KIND = {
@@ -176,6 +175,14 @@ class DocReport:
     flows: int = 0
     notes: list[str] = field(default_factory=list)
     llm_used: bool = False
+    #: Kayıtlı biçim anahtarı (``registry.FormatSpec.key``); desteklenmiyorsa None.
+    format: str | None = None
+    #: Okuyucu nasıl seçildi: uzanti | icerik | zorla | yedek | yok
+    detected: str = "uzanti"
+    #: Arşivden çıkarıldıysa arşivin adı.
+    container: str | None = None
+    #: Tablo adı geçen ama kuralla çözülemeyen paragraf sayısı.
+    leftovers: int = 0
 
     def note(self, message: str) -> None:
         if message not in self.notes:
@@ -185,7 +192,8 @@ class DocReport:
         return {
             "file": self.file, "reader": self.reader, "status": self.status,
             "datasets": self.datasets, "processes": self.processes, "flows": self.flows,
-            "notes": self.notes[:20], "llm_used": self.llm_used,
+            "notes": self.notes[:20], "llm_used": self.llm_used, "format": self.format,
+            "detected": self.detected, "container": self.container, "leftovers": self.leftovers,
         }
 
 
@@ -245,18 +253,21 @@ class ModelBuilder:
             node.layer = layer
         if kind and not node.kind:
             node.kind = kind
-        node.system = node.system or system
+        node.system = node.system or active().system_name(system)
         node.description = node.description or description
         node.confirmed = node.confirmed or not draft
         if source:
             node.sources.append(source)
         return key
 
-    def column(self, dataset_key: str, column_name: str, data_type: str | None = None) -> str:
+    def column(self, dataset_key: str, column_name: str, data_type: str | None = None, *,
+               pk: bool = False) -> str:
         name = clean_name(column_name).upper()
         columns = self.datasets[dataset_key].columns
         if name and name not in columns:
-            columns[name] = Column(name=name, data_type=data_type or None)
+            columns[name] = Column(name=name, data_type=data_type or None, pk=pk)
+        elif name and pk:
+            columns[name].pk = True
         return name
 
     def process(self, raw_name: str, source: SourceRef | None = None, *, draft: bool = False,
@@ -275,7 +286,7 @@ class ModelBuilder:
         node.load_strategy = node.load_strategy or load_strategy
         node.description = node.description or description
         node.schedule = node.schedule or schedule
-        node.system = node.system or system
+        node.system = node.system or active().system_name(system)
         node.confirmed = node.confirmed or not draft
         if source:
             node.sources.append(source)
@@ -302,9 +313,10 @@ class ModelBuilder:
                draft: bool = False) -> None:
         self._edge(EdgeKind.WRITES, process_key, dataset_key, source, draft)
 
-    def precedes(self, first: str, second: str, source: SourceRef | None = None) -> None:
+    def precedes(self, first: str, second: str, source: SourceRef | None = None, *,
+                 draft: bool = False) -> None:
         if first != second:
-            self._edge(EdgeKind.PRECEDES, first, second, source, False)
+            self._edge(EdgeKind.PRECEDES, first, second, source, draft)
 
     def column_flow(self, src_key: str, src_col: str, tgt_key: str, tgt_col: str, *,
                     expression: str | None = None, source: SourceRef | None = None) -> None:

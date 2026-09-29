@@ -1,0 +1,9 @@
+{
+  "aciklama": ".txt uzantılı JIL; içerik tespitiyle AutoSys okuyucusuna gitmeli",
+  "format": "jil",
+  "datasets": [],
+  "processes": ["EXT_MUSTERI", "TPT_STG_MUSTERI", "SP_ODS_MUSTERI"],
+  "links": [],
+  "precedes": [["EXT_MUSTERI", "TPT_STG_MUSTERI"], ["TPT_STG_MUSTERI", "SP_ODS_MUSTERI"]],
+  "subset": false
+}

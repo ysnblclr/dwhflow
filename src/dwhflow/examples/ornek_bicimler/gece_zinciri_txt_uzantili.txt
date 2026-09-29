@@ -1,0 +1,10 @@
+/* Uzantısı .txt olan bir AutoSys JIL dosyası: içerikten tanınmalı */
+insert_job: EXT_MUSTERI   job_type: CMD
+start_times: "00:30"
+description: "Müşteri extract"
+
+insert_job: TPT_STG_MUSTERI   job_type: CMD
+condition: s(EXT_MUSTERI)
+
+insert_job: SP_ODS_MUSTERI   job_type: CMD
+condition: s(TPT_STG_MUSTERI)

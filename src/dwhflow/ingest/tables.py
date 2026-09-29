@@ -16,36 +16,11 @@ from typing import Any
 
 from ..model import ProcessKind
 from .base import DocReport, ModelBuilder, fold, parse_load_strategy, ref
+from .config import DEFAULT_ROLES, active
 
-#: Rol → başlık eş anlamlıları (``fold`` edilmiş biçimde).
-ROLES: dict[str, tuple[str, ...]] = {
-    "target_table": ("hedef tablo", "target table", "tgt table", "hedef nesne", "target object",
-                     "hedef", "target", "tgt", "hedef dosya", "target file", "yazilan tablo",
-                     "to table", "to"),
-    "target_column": ("hedef kolon", "hedef alan", "hedef sutun", "target column", "target field",
-                      "tgt column", "tgt col", "hedef kolon adi"),
-    "source_table": ("kaynak tablo", "source table", "src table", "kaynak nesne", "source object",
-                     "kaynak", "source", "src", "kaynak dosya", "source file", "okunan tablo",
-                     "from table", "from"),
-    "source_column": ("kaynak kolon", "kaynak alan", "kaynak sutun", "source column", "source field",
-                      "src column", "src col"),
-    "transform": ("donusum", "donusum kurali", "transformation", "transform", "kural", "rule",
-                  "is kurali", "business rule", "logic", "mantik", "expression", "ifade",
-                  "mapping rule", "hesaplama", "aciklama", "description"),
-    "job": ("job", "job adi", "is", "is adi", "process", "surec", "mapping", "mapping adi",
-            "etl", "etl job", "session", "workflow", "program", "script", "prosedur",
-            "procedure", "adim", "step", "task", "gorev"),
-    "predecessor": ("onceki is", "onceki job", "bagimlilik", "depends on", "dependency",
-                    "predecessor", "after", "sonra", "onkosul", "condition", "kosul", "bekler"),
-    "load": ("yukleme", "yukleme tipi", "yukleme stratejisi", "load type", "load strategy",
-             "load", "strategy", "yukleme yontemi", "method"),
-    "tool": ("arac", "tool", "teknoloji", "technology", "platform"),
-    "source_system": ("kaynak sistem", "source system", "src system"),
-    "target_system": ("hedef sistem", "target system", "tgt system"),
-    "schedule": ("zaman", "saat", "baslangic", "baslangic saati", "schedule", "start time",
-                 "calisma saati", "periyot", "frequency", "siklik"),
-    "data_type": ("tip", "veri tipi", "data type", "type", "format"),
-}
+#: Geriye uyumluluk: yerleşik eş anlamlılar. Okuma sırasında etkin yapılandırmadaki
+#: (ayarlarla genişletilmiş) liste kullanılır — bkz. ``config.IngestConfig.roles``.
+ROLES = DEFAULT_ROLES
 
 
 @dataclass
@@ -63,7 +38,7 @@ def _match_roles(headers: list[str]) -> dict[str, int]:
     used: set[int] = set()
     # Önce uzun/özel eş anlamlılar, sonra kısa olanlar: "kaynak kolon" "kaynak"tan önce eşleşsin.
     ordered = sorted(
-        ((role, synonym) for role, synonyms in ROLES.items() for synonym in synonyms),
+        ((role, synonym) for role, synonyms in active().roles.items() for synonym in synonyms),
         key=lambda item: -len(item[1]),
     )
     for role, synonym in ordered:
