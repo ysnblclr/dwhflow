@@ -193,3 +193,10 @@ class TestPreview:
         path.write_bytes(b"\x00\x01" * 10)
         _, blocks = preview_document(path)
         assert blocks[0]["kind"] == "note"
+
+
+def test_unrecognized_tables_collected():
+    result = ingest_files([SAMPLES / "Kart_Tasarim_Dokumani.docx"])
+    assert result.unrecognized_tables
+    file, locator, headers, rows = result.unrecognized_tables[0]
+    assert file == "Kart_Tasarim_Dokumani.docx" and headers and len(rows) <= 3

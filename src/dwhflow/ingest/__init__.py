@@ -132,6 +132,8 @@ class IngestResult:
     errors: list[str] = field(default_factory=list)
     #: (dosya, konum, paragraf) — kuralla çözülemeyenler (LLM'e gönderilen ya da onay bekleyen)
     leftovers: list[tuple[str, str, str]] = field(default_factory=list)
+    #: (dosya, konum, başlıklar, ilk 3 satır) — tanınmayan tablolar (LLM başlık eşlemesi adayı)
+    unrecognized_tables: list[tuple[str, str, list[str], list[list[str]]]] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -233,15 +235,16 @@ def ingest_files(paths: list[Path], *, llm: Any = None, name: str = "dokuman-mod
         model = builder.build()
     _count(model, reports)
     return IngestResult(model=model, reports=reports, llm=llm_info, llm_candidates=len(candidates),
-                        leftovers=candidates, errors=list(PLUGIN_ERRORS))
+                        leftovers=candidates, errors=list(PLUGIN_ERRORS),
+                        unrecognized_tables=list(builder.unrecognized_tables))
 
 
 def preview_document(path: Path, config: IngestConfig | None = None) -> tuple[str | None, list[Block]]:
     """(biçim anahtarı, bloklar). Önizleyici yoksa metin olarak gösterilir."""
     config = config or DEFAULT
-    spec, _, _ = resolve(path, config)
-    previewer = spec.preview if spec and spec.preview else _preview.preview_any
     with using(config):
+        spec, _, _ = resolve(path, config)
+        previewer = spec.preview if spec and spec.preview else _preview.preview_any
         try:
             return (spec.key if spec else None), previewer(path)
         except Exception as exc:  # noqa: BLE001 - önizleme hatası ekranda not olarak görünür

@@ -235,6 +235,8 @@ class ModelBuilder:
         self.edges: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.column_edges: dict[tuple[str, str], dict[str, Any]] = {}
         self.base: Model | None = None
+        #: Tanınmayan tablolar: (dosya, konum, başlıklar, ilk 3 satır) — LLM başlık eşlemesi için.
+        self.unrecognized_tables: list[tuple[str, str, list[str], list[list[str]]]] = []
 
     # -- ekleme ------------------------------------------------------------- #
 

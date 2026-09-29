@@ -89,6 +89,10 @@ def interpret(table: TableView, builder: ModelBuilder, report: DocReport, *,
     if not (has_mapping or has_jobs):
         shown = ", ".join(h for h in table.headers if h)[:120]
         report.note(f"{table.locator}: tablo tanınmadı (başlıklar: {shown or '—'})")
+        if any(h.strip() for h in table.headers) and table.rows:
+            builder.unrecognized_tables.append(
+                (file, table.locator, [str(h) for h in table.headers],
+                 [[str(c) for c in row] for row in table.rows[:3]]))
         return 0
 
     flows = 0
