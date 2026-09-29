@@ -17,3 +17,6 @@ dwhflow-cikti/
 # Çalışma alanı: yüklenen dokümanlar, ayarlar, bağlantılar
 .dwhflow/
 
+
+# Claude Code çalışma kopyaları ve yerel ayarlar
+.claude/

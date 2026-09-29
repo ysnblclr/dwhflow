@@ -580,10 +580,11 @@ def serve(
     allow_host: Annotated[list[str] | None, typer.Option(
         help="Yerel dışında kabul edilecek Host adı (ağdan erişim için sunucu adı)")] = None,
 ) -> None:
-    """Tarayıcı arayüzünü başlatır: doküman yükle → akışa çevir → sonuçları aç.
+    """Ekip arayüzünü başlatır: projeler, dokümanlar, model, düzeltmeler, diyagramlar.
 
-    Varsayılan olarak yalnız bu makineden erişilir. Kimlik doğrulaması yoktur;
-    ağa açarken (--host 0.0.0.0 --allow-host SUNUCU) bunu göz önünde bulundurun.
+    Giriş zorunludur. İlk yönetici ya bu makinedeki tarayıcıdan (http://127.0.0.1:PORT)
+    ya da `dwhflow kullanici ekle ADI --rol yonetici` ile oluşturulur. Ekibe açmak için:
+    --host 0.0.0.0 --allow-host SUNUCU_ADI (tercihen HTTPS sağlayan bir ters vekil arkasında).
     """
     try:
         import uvicorn
@@ -596,9 +597,16 @@ def serve(
 
     workspace_dir = data_dir or Path.cwd() / ".dwhflow"
     hosts = set(allow_host or [])
+    from .auth import UserStore
+    from .project import Workspace
+
+    users = UserStore(Workspace(workspace_dir).users_file)
+    if users.empty():
+        typer.secho("  İlk kurulum: henüz kullanıcı yok. Yöneticiyi bu makinedeki tarayıcıdan oluşturun\n"
+                    "  ya da:  dwhflow kullanici ekle ADI --rol yonetici", fg=typer.colors.YELLOW)
     if host not in ("127.0.0.1", "localhost", "::1"):
-        typer.secho("  ⚠ Sunucu yerel olmayan bir adreste dinleyecek; kimlik doğrulaması yok.",
-                    fg=typer.colors.YELLOW)
+        typer.secho("  ⚠ Sunucu ağa açık dinleyecek. Trafik şifresizdir; kurum içinde HTTPS sağlayan bir\n"
+                    "    ters vekil (IIS/nginx) arkasında çalıştırmanız önerilir.", fg=typer.colors.YELLOW)
         if not hosts:
             typer.secho("  ⚠ --allow-host verilmedi: diğer makinelerden gelen istekler reddedilecek.",
                         fg=typer.colors.YELLOW)
@@ -608,6 +616,96 @@ def serve(
     typer.echo("  API dokümanı: /api/docs\n")
     uvicorn.run(create_app(workspace_dir, allowed_hosts=hosts), host=host, port=port,
                 log_level="warning")
+
+
+user_app = typer.Typer(help="Ekip kullanıcıları (serve için).", no_args_is_help=True)
+app.add_typer(user_app, name="kullanici")
+
+_DataDir = Annotated[Path | None, typer.Option("--data-dir", help="Çalışma alanı (varsayılan ./.dwhflow)")]
+
+
+def _users(data_dir: Path | None):
+    from .auth import UserStore
+    from .project import Workspace
+
+    return UserStore(Workspace(data_dir or Path.cwd() / ".dwhflow").users_file)
+
+
+def _ask_password() -> str:
+    import getpass
+
+    first = getpass.getpass("Parola: ")
+    if first != getpass.getpass("Parola (tekrar): "):
+        typer.secho("Parolalar eşleşmiyor.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+    return first
+
+
+@user_app.command("ekle")
+def user_add(
+    username: Annotated[str, typer.Argument(help="Kullanıcı adı (küçük harf)")],
+    name: Annotated[str, typer.Option("--ad", help="Görünen ad")] = "",
+    role: Annotated[str, typer.Option("--rol", help="izleyici | duzenleyici | yonetici")] = "duzenleyici",
+    data_dir: _DataDir = None,
+) -> None:
+    """Kullanıcı ekler; parola sorulur (komut satırına yazılmaz)."""
+    from .project import StoreError
+
+    try:
+        created = _users(data_dir).create(username, name, role, _ask_password())
+    except StoreError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.secho(f"Eklendi: {created['username']} ({created['role']})", fg=typer.colors.GREEN)
+
+
+@user_app.command("liste")
+def user_list(data_dir: _DataDir = None) -> None:
+    """Kullanıcıları listeler."""
+    for item in _users(data_dir).list():
+        state = "" if item["active"] else "  (devre dışı)"
+        typer.echo(f"{item['username']:20} {item['role']:12} {item['name']}{state}")
+
+
+@user_app.command("parola")
+def user_password(username: Annotated[str, typer.Argument()], data_dir: _DataDir = None) -> None:
+    """Kullanıcının parolasını değiştirir (unutulan yönetici parolası için de)."""
+    from .project import StoreError
+
+    try:
+        _users(data_dir).update(username, password=_ask_password())
+    except (StoreError, LookupError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.secho("Parola değişti. Açık oturumlar sunucu yeniden başlayınca düşer.", fg=typer.colors.GREEN)
+
+
+@user_app.command("rol")
+def user_role(username: Annotated[str, typer.Argument()],
+              role: Annotated[str, typer.Argument(help="izleyici | duzenleyici | yonetici")],
+              data_dir: _DataDir = None) -> None:
+    """Kullanıcının rolünü değiştirir."""
+    from .project import StoreError
+
+    try:
+        _users(data_dir).update(username, role=role)
+    except (StoreError, LookupError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.secho(f"{username}: {role}", fg=typer.colors.GREEN)
+
+
+@user_app.command("sil")
+def user_delete(username: Annotated[str, typer.Argument()], data_dir: _DataDir = None) -> None:
+    """Kullanıcıyı siler."""
+    from .project import StoreError
+
+    try:
+        _users(data_dir).delete(username)
+    except (StoreError, LookupError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.secho(f"Silindi: {username}", fg=typer.colors.GREEN)
 
 
 engine_app = typer.Typer(help="Diyagram motoru (Archify) işlemleri.", no_args_is_help=True)

@@ -173,8 +173,8 @@ def _nearest(graph: nx.DiGraph, center: str, members: set[str], budget: int) -> 
 # --------------------------------------------------------------------------- #
 
 
-def slice_overview(model: Model) -> Slice | None:
-    if not model.datasets or len(model.datasets) > DATASET_BUDGET:
+def slice_overview(model: Model, budget: int = DATASET_BUDGET) -> Slice | None:
+    if not model.datasets or len(model.datasets) > budget:
         return None
     return Slice(
         id="genel-akis",
@@ -292,26 +292,31 @@ def terminal_datasets(model: Model, graph: nx.DiGraph) -> list[str]:
     return sorted(ends, key=lambda d: (-model.datasets[d].criticality, model.datasets[d].name))
 
 
-def plan_default(model: Model) -> list[Slice]:
-    """Otomatik plan: genel akış (sığıyorsa) + her tüketim ucunun soy ağacı."""
+def plan_default(model: Model, *, budget: int = DATASET_BUDGET, job_budget: int = PROCESS_BUDGET,
+                 overview: bool = True, lineage: bool = True, batch: bool = True) -> list[Slice]:
+    """Otomatik plan: genel akış (sığıyorsa) + her tüketim ucunun soy ağacı + batch zincirleri.
+
+    Hangi türlerin üretileceği ve bütçeler proje ayarlarından (``diyagram``) gelir.
+    """
     links = dataset_links(model)
     graph = dataset_graph(model, links)
     plan: list[Slice] = []
-    overview = slice_overview(model)
-    if overview:
-        plan.append(overview)
-    seen = {frozenset(overview.datasets)} if overview else set()
-    for endpoint in terminal_datasets(model, graph):
-        candidate = slice_lineage(model, graph, endpoint)
+    general = slice_overview(model, budget) if overview else None
+    if general:
+        plan.append(general)
+    seen = {frozenset(general.datasets)} if general else set()
+    for endpoint in terminal_datasets(model, graph) if lineage else []:
+        candidate = slice_lineage(model, graph, endpoint, budget=budget)
         key = frozenset(candidate.datasets)
         # Genel akışın aynısı ya da başka bir soy ağacının alt kümesi olan dilimi atla.
         if key in seen or any(key < other for other in seen):
             continue
         seen.add(key)
         plan.append(candidate)
-        if len(plan) >= MAX_LINEAGE_SLICES + (1 if overview else 0):
+        if len(plan) >= MAX_LINEAGE_SLICES + (1 if general else 0):
             break
-    plan.extend(slice_batch(model))
+    if batch:
+        plan.extend(slice_batch(model, budget=job_budget))
     return plan
 
 

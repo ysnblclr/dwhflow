@@ -116,7 +116,12 @@ def _suffix_case(after: str) -> tuple[str | None, bool]:
             return "dat", False
         if suffix.endswith(("i", "u", "yi", "yu", "ni", "nu")):
             return "acc", False
-    word = fold(stripped.split(" ", 2)[0] if stripped else "")
+    first = stripped.split(" ", 2)[0] if stripped else ""
+    word = fold(first)
+    # "job'ı ile", "job'ıyla", "script'iyle": kesme işaretinden sonrası ektir; kelime köküne bakılır.
+    root = fold(re.split(r"['’]", first, maxsplit=1)[0])
+    if root in _JOB_WORDS and root != word:
+        return None, True
     two = fold(" ".join(stripped.split(" ", 3)[:2])) if stripped else ""
     if any(word.startswith(w) for w in _ABLATIVE_WORDS) or two in _ABLATIVE_WORDS:
         return "abl", False

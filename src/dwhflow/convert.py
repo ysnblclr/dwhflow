@@ -29,10 +29,13 @@ from .render.engine import Engine, EngineError, FinalizeResult
 from .render.gallery import write_gallery
 from .render.repair import apply_label_fixes
 from .render.slices import (
+    DATASET_BUDGET,
+    PROCESS_BUDGET,
     Slice,
     dataset_graph,
     dataset_links,
     plan_default,
+    resolve,
     slice_focus,
     slice_path,
 )
@@ -54,6 +57,15 @@ class RunOptions:
     auto: bool = True
     jobs: int = 2
     title: str | None = None
+    #: diyagram başına en çok veri nesnesi / batch diyagramında en çok job
+    budget: int = DATASET_BUDGET
+    job_budget: int = PROCESS_BUDGET
+    #: otomatik planın türleri
+    overview: bool = True
+    lineage: bool = True
+    batch: bool = True
+    #: diyagramlarda gösterilmeyecek nesneler (ad ya da kimlik); vurgulanan yol üyeleri hariç
+    hidden: list[str] = field(default_factory=list)
 
 
 def _plan(model: Model, options: RunOptions, notes: list[str]) -> list[Slice]:
@@ -62,17 +74,31 @@ def _plan(model: Model, options: RunOptions, notes: list[str]) -> list[Slice]:
     plan: list[Slice] = []
     for source, target in options.paths:
         try:
-            plan.append(slice_path(model, graph, source, target))
+            plan.append(slice_path(model, graph, source, target, budget=options.budget))
         except KeyError as exc:
             notes.append(f"yol diyagramı üretilemedi: {exc}")
     for center, hops in options.focus:
         try:
-            plan.append(slice_focus(model, graph, center, hops))
+            plan.append(slice_focus(model, graph, center, hops, budget=options.budget))
         except KeyError as exc:
             notes.append(f"çevre diyagramı üretilemedi: {exc}")
     if options.auto:
-        known = {frozenset(s.datasets) for s in plan}
-        plan.extend(s for s in plan_default(model) if frozenset(s.datasets) not in known)
+        known = {frozenset(s.datasets) for s in plan if s.datasets}
+        plan.extend(s for s in plan_default(model, budget=options.budget, job_budget=options.job_budget,
+                                            overview=options.overview, lineage=options.lineage,
+                                            batch=options.batch)
+                    if not s.datasets or frozenset(s.datasets) not in known)
+    hidden: set[str] = set()
+    for ref in options.hidden:
+        try:
+            hidden.add(resolve(model, ref))
+        except KeyError:
+            notes.append(f"gizlenecek nesne bulunamadı: {ref}")
+    if hidden:
+        for piece in plan:
+            keep = set(piece.highlight)
+            piece.datasets = [d for d in piece.datasets if d not in hidden or d in keep]
+        plan = [piece for piece in plan if piece.datasets or piece.kind == "batch"]
     # Aynı id'ye sahip dilimler (ör. iki kez istenen yol) tek dosyaya düşmesin.
     seen: dict[str, int] = {}
     for piece in plan:
@@ -149,6 +175,41 @@ def _failed(piece: Slice, message: str) -> dict[str, Any]:
     }
 
 
+
+def render_diagrams(model: Model, report: dict[str, Any], out_dir: Path, *, findings: list[Any],
+                    options: RunOptions, engine: Engine | None, progress: Progress) -> None:
+    """Modelden diyagramları üretir; sonuçları ``report["diagrams"]`` ve ``notes``'a yazar."""
+    say = progress
+    notes: list[str] = report.setdefault("notes", [])
+    if not model.datasets:
+        notes.append("Dokümanlardan hiç tablo/dosya çıkarılamadı; diyagram üretilmedi. "
+                      "Doküman raporundaki notlara bakın.")
+    elif options.render:
+        engine = engine or Engine()
+        report["engine"] = {"name": engine.lock["name"], "version": engine.lock["version"]}
+        plan = _plan(model, options, notes)
+        say("diyagram", f"{len(plan)} diyagram üretilecek")
+        links = dataset_links(model)
+        try:
+            engine.ensure_installed()
+            engine.node()
+        except EngineError as exc:
+            notes.append(f"Diyagramlar üretilemedi: {exc}")
+            plan = []
+        with ThreadPoolExecutor(max_workers=max(1, options.jobs)) as pool:
+            futures = [pool.submit(_render_one, engine, model, piece, out_dir, findings, links,
+                                   options.quality) for piece in plan]
+            for index, (piece, future) in enumerate(zip(plan, futures, strict=True), start=1):
+                try:
+                    item = future.result()
+                except Exception as exc:  # bir diyagramın hatası diğerlerini düşürmesin
+                    item = _failed(piece, f"derleme hatası: {exc}")
+                report["diagrams"].append(item)
+                say("diyagram", f"{index}/{len(plan)}: {item['title']} — {item['summary']}")
+    else:
+        notes.append("Görselleştirme kapalı (--no-render): yalnız model ve rapor üretildi.")
+
+
 def convert(
     files: list[Path],
     out_dir: Path,
@@ -195,34 +256,8 @@ def convert(
         "engine": None,
     }
 
-    if not model.datasets:
-        notes.append("Dokümanlardan hiç tablo/dosya çıkarılamadı; diyagram üretilmedi. "
-                      "Doküman raporundaki notlara bakın.")
-    elif options.render:
-        engine = engine or Engine()
-        report["engine"] = {"name": engine.lock["name"], "version": engine.lock["version"]}
-        plan = _plan(model, options, notes)
-        say("diyagram", f"{len(plan)} diyagram üretilecek")
-        links = dataset_links(model)
-        try:
-            engine.ensure_installed()
-            engine.node()
-        except EngineError as exc:
-            notes.append(f"Diyagramlar üretilemedi: {exc}")
-            plan = []
-        with ThreadPoolExecutor(max_workers=max(1, options.jobs)) as pool:
-            futures = [pool.submit(_render_one, engine, model, piece, out_dir, findings, links,
-                                   options.quality) for piece in plan]
-            for index, (piece, future) in enumerate(zip(plan, futures, strict=True), start=1):
-                try:
-                    item = future.result()
-                except Exception as exc:  # bir diyagramın hatası diğerlerini düşürmesin
-                    item = _failed(piece, f"derleme hatası: {exc}")
-                report["diagrams"].append(item)
-                say("diyagram", f"{index}/{len(plan)}: {item['title']} — {item['summary']}")
-    else:
-        notes.append("Görselleştirme kapalı (--no-render): yalnız model ve rapor üretildi.")
-
+    render_diagrams(model, report, out_dir, findings=findings, options=options, engine=engine,
+                    progress=say)
     report["duration_s"] = round(time.perf_counter() - started, 1)
     (out_dir / "dwhflow-run.json").write_text(json.dumps(report, ensure_ascii=False, indent=1),
                                               encoding="utf-8")
