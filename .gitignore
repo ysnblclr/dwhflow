@@ -20,3 +20,4 @@ dwhflow-cikti/
 
 # Claude Code çalışma kopyaları ve yerel ayarlar
 .claude/
+.dwhflow-dev/

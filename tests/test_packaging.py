@@ -100,13 +100,27 @@ class TestPackagedData:
 
     def test_static_assets_inside_package(self):
         static = SRC / "static"
-        assert {p.name for p in static.iterdir() if p.is_file()} >= {"index.html", "app.js", "app.css"}
+        assert (static / "index.html").is_file() and (static / "css" / "app.css").is_file()
+        assert {p.stem for p in (static / "js" / "core").glob("*.js")} >= {"api", "dom", "router", "store", "ui"}
+        assert (static / "js" / "main.js").is_file()
+
+    def test_every_route_has_a_screen_module(self):
+        """Yönlendiricideki her ekranın modülü pakette olmalı (yoksa ekran açılmaz)."""
+        import re
+
+        router = (SRC / "static" / "js" / "core" / "router.js").read_text(encoding="utf-8")
+        screens = set(re.findall(r"screen: '([a-z-]+)'", router))
+        present = {p.stem for p in (SRC / "static" / "js" / "screens").glob("*.js")}
+        assert screens and not (screens - present), f"modülü olmayan ekranlar: {sorted(screens - present)}"
+
+    def test_no_inline_script_or_handlers(self):
+        """CSP script-src 'self': satır içi betik ve on* öznitelikleri çalışmaz."""
+        html = (SRC / "static" / "index.html").read_text(encoding="utf-8")
+        assert "<script>" not in html and " onclick=" not in html
 
     def test_old_odi_ui_removed(self):
-        """ODİ benzeri eski arayüz kaldırıldı; artıkları pakette kalmamalı."""
-        static = SRC / "static"
-        assert not (static / "js").exists() and not (static / "css").exists()
         assert not (SRC / "layout").exists()
+        assert not (SRC / "static" / "app.js").exists()
 
     def test_engine_bundled_and_pinned(self):
         import hashlib
