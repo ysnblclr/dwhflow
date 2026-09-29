@@ -18,8 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from dwhflow.auth import UserStore  # noqa: E402
-from dwhflow.project import ProjectEngine, Workspace  # noqa: E402
-from dwhflow.project import samples  # noqa: E402
+from dwhflow.project import (  # noqa: E402
+    ProjectEngine,
+    Workspace,
+    samples,  # noqa: E402
+)
 
 
 def main() -> int:

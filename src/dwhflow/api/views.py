@@ -90,8 +90,11 @@ class ModelView:
         return node.name if node else node_id
 
     def finding_row(self, finding) -> dict[str, Any]:
-        return {"rule": finding.rule, "severity": finding.severity.value, "subject": finding.subject,
-                "subject_name": subject_text(self.model, finding.subject), "message": finding.message}
+        subject = finding.subject
+        return {"rule": finding.rule, "severity": finding.severity.value, "subject": subject,
+                "subject_name": subject_text(self.model, subject),
+                "subject_type": self.model.node_type_of(subject) if subject else None,
+                "message": finding.message}
 
     def dataset_row(self, dataset) -> dict[str, Any]:
         return {
