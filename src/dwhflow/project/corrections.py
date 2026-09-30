@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from ..ingest.base import bare_key, is_file_name, make_id, name_key
 from ..model import (
     COLUMN_SEP,
+    ENDPOINT_SPEC,
     Column,
     Dataset,
     DatasetKind,
@@ -60,20 +61,8 @@ OP_LABELS = {
 #: Model dışı işlemler: modele dokunmaz, boru hattında ayrıca yorumlanır.
 META_OPS = {"bulgu_yoksay", "oneri_reddet"}
 DIRECT_KINDS = {EdgeKind.DERIVES_FROM, EdgeKind.TRANSFERS, EdgeKind.PRECEDES}
-COLUMN_KINDS = {EdgeKind.COLUMN_MAPS_TO, EdgeKind.INFLUENCES}
-#: Bağ türü → (kaynak tipi, hedef tipi); ``None`` her tip olabilir demek.
-EDGE_ENDPOINTS: dict[EdgeKind, tuple[str | None, str | None]] = {
-    EdgeKind.READS: ("dataset", "process"),
-    EdgeKind.CONSUMES_FILE: ("dataset", "process"),
-    EdgeKind.WRITES: ("process", "dataset"),
-    EdgeKind.PRODUCES_FILE: ("process", "dataset"),
-    EdgeKind.VALIDATES: ("process", "dataset"),
-    EdgeKind.RECONCILES: ("process", "dataset"),
-    EdgeKind.TRANSFERS: ("dataset", "dataset"),
-    EdgeKind.DERIVES_FROM: ("dataset", "dataset"),
-    EdgeKind.PRECEDES: ("process", "process"),
-    EdgeKind.TRIGGERS: (None, "process"),
-}
+#: Uçları ``TABLO#KOLON`` olan bağ türleri (uç türleri modelin ``ENDPOINT_SPEC``'inden).
+COLUMN_KINDS = {kind for kind, ends in ENDPOINT_SPEC.items() if "column" in ends}
 NODE_TYPE_LABELS = {"dataset": "veri nesnesi (tablo/dosya)", "process": "süreç"}
 
 
@@ -465,10 +454,9 @@ class _Applier:
             return
         if any(columns):
             raise CorrectionError(f"'{kind.value}' bağı kolonlar arasında kurulamaz")
-        expected = EDGE_ENDPOINTS.get(kind, (None, None))
         actual = (self.model.node_type_of(source), self.model.node_type_of(target))
-        for end, want, got in zip(("kaynak", "hedef"), expected, actual, strict=True):
-            if want and want != got:
+        for end, want, got in zip(("kaynak", "hedef"), ENDPOINT_SPEC[kind], actual, strict=True):
+            if want != "any" and want != got:
                 raise CorrectionError(f"'{kind.value}' bağında {end} bir {NODE_TYPE_LABELS[want]} olmalı")
 
     def op_bag_ekle(self, op: Correction) -> str:

@@ -16,6 +16,28 @@
 
 ---
 
+## Uygulama durumu (30 Eylül 2026)
+
+**Kararlar (§10'un cevapları):** kurumda **DataStage, Control-M ve Airflow** kullanılıyor;
+uygulamayı **ekip** kullanacak (yukarıdaki "tek kullanıcılı" varsayımı geçersiz: giriş,
+roller, projeler, günlük eklendi); **taranmış doküman gerekmiyor** (OCR, US-6.7 kapsam dışı);
+gezinme **üst menüde** (US-1.1'deki sol menü yerine). Arayüz §6'daki Preact yerine derleme
+adımı olmayan düz ES modülleriyle yazıldı.
+
+| Faz | Durum | Not |
+|---|---|---|
+| 0 Temel | tamam | Projeler, doküman sürümleri, okuma önbelleği, 2 senaryo + her biçim için örnek ve altın test, 3 boş şablon, otomatik biçim rehberi. Okuyucular DAF yerine doğrudan model kurucuyu kullanır; DAF LLM ve içe aktarım yolunda (US-0.3 kısmen). |
+| 1 Kabuk ve inceleme | tamam | Üst menü, pano, dokümanlar, doküman inceleme (kanıt vurgusu), tablolar, süreçler, bulgular, diyagramlar, Ctrl+K. Listeler 2 000 satırda kesilir (sanal liste yok). |
+| 2 Ayarlar | tamam | Katmanlı ayarlar ve kaynak etiketleri, eş anlamlılar (etki önizlemeli), ad kuralları (yukarı/aşağı sıralama + test kutusu), sistem sözlüğü, diyagram, LLM profilleri, dışa/içe aktarma. US-2.7 kısmen: durum ekranı var; Node/Chrome yolu ve çalıştırma temizliği ekranda yok. |
+| 3 Elle müdahale | tamam | Düzeltme katmanı (18 işlem), birleştirme ve öneriler, bağ ekle/sil/çevir, elle nesne, onay kuyruğu (toplu, önizlemeli), günlük, geri al/yinele (günlükten; Ctrl+Z yok), sahipsiz düzeltmeler, bulgu yok sayma, STTM düzenleme. US-3.12 kısmen: gizleme tüm diyagramlar için; diyagram başına sabitleme/başlık yok. |
+| 4 Evrensel okuma I | tamam | .doc/.xls/.pptx/.odt/.ods/.rtf/.html/.mht, .eml/.msg, zip, Visio, draw.io, BPMN, Mermaid, Graphviz, kurum XML/JSON şablonu, içerikten tespit, isteğe bağlı genel dönüştürücü. PlantUML yok. |
+| 5 Evrensel okuma II | kısmen | **DataStage** (.dsx, XML, .isx), **Control-M** (XML, JSON), **Airflow** (AST), AutoSys, eklenti okuyucu (`ingest/formats/*.py`). ODI, Informatica, SSIS, Talend, Pentaho, TWS, cron, dbt, JCL, copybook, shell/TPT yok — kurumda kullanılmıyor. |
+| 6 LLM v2 | tamam (6.7 hariç) | DAF `extract/2`, tablo rolleri, istem kütüphanesi, test konsolu, maskeleme ve gönderim önizlemesi, güven eşiği, parçalama, ölçüm modülü (`llm/evaluate.py`). |
+| 7 Canlı metadata | kısmen | Yalnız US-7.4 (iki çalıştırma ya da çalıştırma ↔ güncel model farkı, liste olarak). ODBC yok. |
+| 8 Dışa aktarım | başlamadı | Model JSON/YAML indirme var; STTM Excel, OpenLineage, proje yedeği yok. |
+
+---
+
 ## 0. Özet
 
 | Konu | Karar / öneri |

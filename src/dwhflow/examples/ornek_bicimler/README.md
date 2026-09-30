@@ -4,6 +4,14 @@ Her desteklenen biçim için en az bir örnek dosya. Örnekler aynı kredi kart�
 senaryosundan (`../ornek_dokumanlar/`) adlar kullanır; böylece farklı biçimlerden
 okunan bilgiler aynı tablolarda birleşir.
 
+Kurumda kullanılan araçların örnekleri: `kart_datastage.dsx` ve `kart_datastage_export.xml`
+(DataStage), `kart_controlm.xml` ve `kart_controlm.json` (Control-M), `kart_mart_dag.py`
+(Airflow). Uygulamadaki "Kurum ETL zinciri" senaryosu bunlardan üçünü STTM ve tasarım
+dokümanıyla birlikte tek projede okutur. Her dosyanın neyi sınadığı yanındaki
+`.beklenen.json`'un `aciklama` alanındadır ve Örnekler › Biçim örnekleri ekranında görünür.
+
+Kuruma özel XML/JSON şablonu örneği ayrı klasördedir: `../ornek_sablon/`.
+
 ## Altın çıktı sözleşmesi
 
 Her örnek dosyanın yanında `<dosya adı>.beklenen.json` bulunur. `tests/test_samples_golden.py`

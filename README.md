@@ -1,9 +1,10 @@
 # DWHFlow
 
 Veri ambarı dokümanlarını **uçtan uca akış diyagramlarına** çevirir. STTM
-Excel'leri, Word/PDF tasarım dokümanları, SQL/BTEQ betikleri, Autosys JIL
-tanımları, YAML ve düz metin notları okunur; hepsi tek bir modelde birleşir,
-doğrulanır ve [Archify](https://github.com/tt-a1i/archify) motoruyla
+Excel'leri, Word/PDF tasarım dokümanları, SQL/BTEQ betikleri, **DataStage** exportları,
+**Control-M** ve **Airflow** zamanlamaları, AutoSys JIL, Visio/draw.io/BPMN çizimleri,
+e-postalar ve zip paketleri okunur (ayrıntı: [Desteklenen dokümanlar](#desteklenen-dokümanlar));
+hepsi tek bir modelde birleşir, doğrulanır ve [Archify](https://github.com/tt-a1i/archify) motoruyla
 **etkileşimli, tek dosyalık HTML diyagramlarına** dönüşür: kaynak sistemden
 batch job'a, binary dosyadan ETL'e, DWH tablolarından hedef tablolara kadar.
 
@@ -17,8 +18,8 @@ batch job'a, binary dosyadan ETL'e, DWH tablolarından hedef tablolara kadar.
 - **Çevrimdışı.** Telemetri yok, CDN yok, motorun güncelleme denetimi kapalı.
   Sunucu varsayılan olarak yalnız `127.0.0.1`'e bağlanır.
 
-Planlar ve gerekçeler: [PLAN_V2.md](PLAN_V2.md) (sıradaki sürüm: ekranlar, elle müdahale,
-evrensel okuma, LLM ara formatı), [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (güncel süreç),
+Planlar ve gerekçeler: [PLAN_V2.md](PLAN_V2.md) (ekranlar, elle müdahale, evrensel okuma,
+LLM ara formatı; fazların durumu), [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (diyagram süreci),
 [PLAN.md](PLAN.md) (ilk kapsamlı plan).
 
 ---
@@ -26,12 +27,12 @@ evrensel okuma, LLM ara formatı), [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (güncel s
 ## Nasıl çalışır
 
 ```
-dokümanlar ──► okuyucular ──► tek model ──► doğrulama ──► dilimler ──► Archify ──► galeri
- xlsx docx      tablo/metin     tablolar,     20 kural     genel akış,   4 kapı:     index.html
- pdf sql jil    kuralları,      job'lar,      (SLA, döngü, soy ağacı,    şema,       + her diyagram
- yaml md txt    (+ isteğe bağlı kenarlar,     katman…)     yol, batch    teslim,     ayrı HTML
-                LLM)            kaynak izi                  zinciri       kontrol,
-                                                                         tarayıcı
+dokümanlar ──► okuyucular ──► tek model ──► düzeltmeler ──► doğrulama ──► dilimler ──► Archify
+ xlsx docx      30 biçim,       tablolar,     elle yapılan    20 kural     genel akış,   4 kapı:
+ pdf sql dsx    tablo/metin     job'lar,      işlemler her    (SLA, döngü, soy ağacı,    şema, teslim,
+ controlm       kuralları       kenarlar,     okumada         katman…)     yol, batch    kontrol,
+ airflow jil…   (+ isteğe bağlı kaynak izi    yeniden                      zinciri       tarayıcı
+                LLM)                          uygulanır
 ```
 
 1. **Okuma.** Her biçimin kendi okuyucusu var. Tablolar sütun başlıklarından tanınır
@@ -185,7 +186,7 @@ proje ayarı yapar), **yönetici** (kullanıcılar, genel ayarlar, LLM profiller
 | **Karşılaştır** | İki çalıştırma ya da çalıştırma ile güncel model arasındaki fark |
 | **Günlük** | Tüm elle düzeltmeler (geri al/yinele) ve kim neyi ne zaman değiştirdi |
 | **Ara (Ctrl+K)** | Tablo, süreç, doküman araması |
-| **Örnekler** | Senaryo ve biçim örnekleri, boş şablonlar (STTM, job bağımlılık, tasarım dokümanı), biçim rehberi |
+| **Örnekler** | İki hazır senaryo (kredi kartı; **DataStage · Control-M · Airflow** kurum ETL zinciri) — tek tıkla proje olur; her biçimden örnek dosya ve beklenen sonucu, boş şablonlar (STTM, job bağımlılık, tasarım dokümanı), biçim rehberi |
 | **Ayarlar** | Proje ve genel ayarlar (okuma kuralları, ad → katman kuralları, sistem sözlüğü, okuyucu/şablonlar, diyagram, yapay zekâ), kullanıcılar, yapay zekâ konsolu, sistem durumu |
 
 **Elle düzeltmeler kaybolmaz.** Her değişiklik bir işlem olarak saklanır ve dokümanlar
@@ -197,6 +198,15 @@ nereden geldiği görünür; okuma kuralı değişiklikleri kaydetmeden önce ö
 
 Çalışma alanı varsayılan olarak bulunduğunuz klasörde `.dwhflow/` altındadır
 (`--data-dir` ile değiştirilebilir); içerik düz YAML/JSON dosyalarıdır, yedeklenebilir.
+
+Kullanıcılar komut satırından da yönetilir (sunucu makinesinde):
+
+```bash
+dwhflow kullanici ekle ayse --rol duzenleyici
+```
+
+`kullanici liste`, `kullanici parola AD`, `kullanici rol AD izleyici`, `kullanici sil AD` da vardır.
+Oturumlar sunucu belleğinde tutulur; sunucu yeniden başlarsa herkes yeniden giriş yapar.
 
 ### Komut satırı
 
@@ -254,19 +264,31 @@ dwhflow impact TPT_STG_KART ./cikti/model
 
 ## Desteklenen dokümanlar
 
-| Biçim | Ne okunur |
-|---|---|
-| `.xlsx` `.xlsm` `.csv` `.tsv` | STTM/eşleme tabloları, job–öncül tabloları, kolon eşlemeleri; uzun metin hücreleri metin kurallarına gider |
-| `.docx` | paragraflar (başlıklar konum bilgisi olur) ve tablolar |
-| `.pdf` | sayfa metni (metin katmanı olan PDF'ler) |
-| `.md` `.txt` | paragraflar, markdown tabloları |
-| `.sql` `.bteq` | INSERT…SELECT, CTAS, MERGE, UPDATE; her ifade ayrı süreç |
-| `.jil` | Autosys job'ları, `condition: s()/d()` bağımlılıkları, başlama saatleri |
-| `.yaml` `.yml` | DWHFlow model dosyaları |
+| Grup | Biçim | Ne okunur |
+|---|---|---|
+| ETL | DataStage `.dsx`, DataStage XML (`<DSExport>`), `.isx` | job → süreç, connector/dosya stage'leri → tablo/dosya, sequence → job sırası, stage SQL'i |
+| Zamanlayıcı | Control-M XML ve Automation API JSON | job'lar, INCOND/OUTCOND ve olaylar → job sırası, TIMEFROM/WEEKDAYS, Flow |
+| Zamanlayıcı | Airflow DAG (`.py`) | görevler, `>>`/`chain` sırası, sensörler, operatör SQL'i — dosya **çalıştırılmaz**, `ast` ile okunur |
+| Zamanlayıcı | AutoSys `.jil` | `insert_job`, `condition: s()/d()`, `start_times` |
+| Tablo | `.xlsx` `.xlsm` `.xls` `.ods` `.csv` `.tsv` | STTM/eşleme tabloları, job–öncül tabloları, kolon eşlemeleri; uzun metin hücreleri metin kurallarına gider |
+| Doküman | `.docx` `.doc` `.odt` `.rtf` `.pptx` `.pdf` `.html` `.mht` `.md` `.txt` | paragraflar (başlıklar konum olur), tablolar, slayt notları; `.pdf` yalnız metin katmanıyla |
+| Kod | `.sql` `.bteq` | INSERT…SELECT, CTAS, MERGE, UPDATE; her ifade ayrı süreç |
+| Diyagram | `.vsdx` `.drawio` `.bpmn` `.mmd` `.dot`/`.gv` | şekiller/düğümler → tablo/job, oklar → akış, ok etiketi → job |
+| E-posta, arşiv | `.eml` `.msg` `.zip` | gövde metni; ekler ve zip içindekiler ayrı doküman olarak (iç içe 3 düzey) |
+| Kurum şablonu | `.xml` `.json` | ayarlardaki `okuma.sablonlar` tanımıyla kuruma özel eşleme dosyaları (örnek: `examples/ornek_sablon`) |
+| Model | `.yaml` `.yml` | DWHFlow model dosyaları |
 
-Henüz desteklenmeyenler açık bir mesajla raporlanır, sessizce atlanmaz: `.doc`
-`.xls` (yeni biçime kaydedin), `.vsdx` (Visio), `.dtsx` (SSIS), `.ktr/.kjb`
-(Pentaho), `.dsx` (DataStage), `.cpy/.cbl` (COBOL copybook), `.pptx`.
+Biçim önce **içerikten** tanınır, uzantı ikinci sıradadır: `.txt` uzantılı bir JIL, `.xml`
+uzantılı bir Control-M ya da DataStage exportu doğru okuyucuya gider. Emin olunamayan
+dosya için okuyucu **Dokümanlar** ekranından ya da ayarlardaki `okuyucu_zorla` ile seçilir.
+
+`.msg` için `pip install "dwhflow[ofis]"` gerekir. Özel okuyucusu olmayan biçimler için
+isteğe bağlı genel dönüştürücü: `pip install "dwhflow[evrensel]"`. Okunamayanlar (SSIS
+`.dtsx`, Pentaho `.ktr/.kjb`, COBOL, rar/7z) açık bir mesajla raporlanır, sessizce atlanmaz.
+Taranmış (görüntü) PDF okunmaz; OCR kapsam dışıdır.
+
+Her biçimden bir örnek ve beklenen sonucu `src/dwhflow/examples/ornek_bicimler/`
+altındadır; testler her örneğin hâlâ aynı sonucu verdiğini denetler.
 
 Okunamayan tablolar ve kuralların çözemediği paragraflar dokümanın raporunda
 not olarak listelenir — "ne okunmadı" her zaman görünür.
@@ -282,27 +304,45 @@ dwhflow convert ./dokumanlar --llm
 
 - Yalnız kuralların akış bulamadığı ama içinde en az iki tablo adı geçen
   paragraflar gönderilir.
-- İstem uygulamanın içindedir: `src/dwhflow/llm/prompts/extract_flows.v1.yaml`
-  (Türkçe, sürümlü, örnekli). Doküman içeriği modele *veri* olarak verilir;
-  içindeki talimatlar uygulanmaz.
-- Her önerilen akış için: kanıt cümlesi belgede birebir geçmeli, iki tablo adı da
-  metinde bulunmalı. Geçmeyen öneri reddedilir ve sayılır.
-- Kabul edilenler **taslak** olarak girer (diyagramda kesikli, "· taslak" etiketli),
-  güveni en çok 0.8'dir ve kaynağında `llm:<model>@extract_flows/v1` yazar.
-- Varsayılan olarak yalnız yerel adresler (`localhost`, `127.0.0.1`) kabul edilir.
-  Dış bir API için ayarlarda açıkça izin vermek gerekir.
+- İstemler sürümlüdür ve arayüzden (Yapay zekâ ekranı › İstem kütüphanesi) yeni sürüm
+  olarak düzenlenir; gömülü sürümler `src/dwhflow/llm/prompts/` altındadır
+  (`extract_flows.v2` akış çıkarma, `table_roles.v1` tanınmayan tablo başlıkları).
+  Doküman içeriği modele *veri* olarak verilir; içindeki talimatlar uygulanmaz.
+- Model **DAF** (`dwhflow.extract/2`) biçiminde yanıt verir: tablolar, süreçler, kolon
+  eşlemeli akışlar, bağımlılıklar ve belirsizlikler. Her öğe belgede birebir geçen bir
+  kanıt cümlesi taşımalı, iki tablo adı da metinde bulunmalı; geçmeyen öneri reddedilir ve sayılır.
+- Kabul edilenler **taslak** olarak girer (diyagramda kesikli, onay kuyruğunda "LLM"
+  etiketli); güveni en çok 0.8'dir, projedeki güven eşiğinin altındakiler alınmaz.
+- Kişisel veriler (TCKN, IBAN, kart no, e-posta, telefon) istenirse gönderilmeden önce
+  maskelenir; yerel olmayan bir adrese gönderimde maskeleme her zaman uygulanır.
+- Varsayılan olarak yalnız yerel adresler (`localhost`, `127.0.0.1`) kabul edilir. Dış bir
+  API için yöneticinin profilde açıkça izin vermesi gerekir. API anahtarı hiçbir dosyaya
+  yazılmaz; profilde yalnız anahtarı tutan **ortam değişkeninin adı** saklanır.
+- **Yapay zekâ konsolu** bir paragrafı modele göndermeden ne gideceğini gösterir
+  ("gönderim önizlemesi") ve sonucu modele dokunmadan dener.
 
 ---
 
 ## Güvenlik
 
-- Sunucu yalnız `127.0.0.1`'e bağlanır; `Host` başlığı yerel değilse istek reddedilir
-  (DNS rebinding).
+- Sunucu varsayılan olarak yalnız `127.0.0.1`'e bağlanır; `Host` başlığı izinli adlardan
+  biri değilse istek reddedilir (DNS rebinding). Ekibe açarken `--allow-host` verilir.
+- **Giriş zorunlu.** Parolalar PBKDF2-SHA256 ile saklanır (en az 10 karakter, en az iki
+  karakter türü, kullanıcı adını içeremez); art arda hatalı girişte kullanıcı adı ve adres
+  bazında bekleme uygulanır. Oturum çerezi HttpOnly ve SameSite=Strict'tir; parola
+  değişince kullanıcının diğer oturumları kapanır.
+- İlk yönetici yalnız sunucu makinesinden (loopback) ya da komut satırından oluşturulur.
+- Yetki her uçta sunucuda denetlenir (izleyici < düzenleyici < yönetici).
 - Değişiklik yapan her istek `X-DWHFlow: 1` başlığı ister; başka bir sitenin sayfası bu
   başlığı gönderemez (CSRF).
-- Yüklemeler boyut sınırıyla diske akıtılır; dosya adları her platformda aynı
-  temizlenir; yalnız desteklenen uzantılar kabul edilir.
+- Arayüz sıkı bir CSP ile sunulur (yalnız kendi betikleri, satır içi betik yok, dış kaynak yok).
+- Yüklenen dokümanlar hiçbir zaman sayfa olarak açılmaz: yalnız ek (`attachment`,
+  `application/octet-stream`) olarak indirilir, önizleme metin blokları olarak gösterilir.
+- Yüklemeler boyut sınırıyla (64 MB) diske akıtılır; dosya adları her platformda aynı
+  temizlenir; arşivler boyut, sayı ve derinlik sınırıyla açılır; güvenilmeyen XML
+  `defusedxml` ile ayrıştırılır.
 - Diyagram motoru sabit sürüm ve SHA-256 ile doğrulanır; zip içindeki yollar denetlenir.
+- Her değişiklik kim/ne zaman bilgisiyle proje günlüğüne yazılır.
 
 ---
 
@@ -324,25 +364,34 @@ Kaynak ağacı:
 
 ```
 src/dwhflow/
-  ingest/     okuyucular (tablo, metin, SQL, JIL…) ve model kurucu
-  llm/        isteğe bağlı YZ: istemci, gömülü istem, kanıt denetimi
-  model/      kanonik model (pydantic)
-  validate/   20 doğrulama kuralı
-  graph/      graf sorguları (yol, etki, sıra)
-  render/     dilimleyici, Archify derleyicisi, motor köprüsü, onarım, galeri
-  engine/     sabitlenmiş Archify zip'i + kilit dosyası
-  api/        web uygulaması ve çalışma alanı
-  static/     arayüz (tek sayfa, dış kaynak yok)
-  examples/   örnek dokümanlar ve örnek model
+  ingest/          biçim kaydı, okuyucular, önizleme, okuma yapılandırması
+  ingest/formats/  eklenti okuyucular (DataStage, Control-M, Airflow, Office, diyagram, e-posta…)
+  daf.py           DAF ara formatı (dwhflow.extract/2) ve modele uygulanması
+  llm/             isteğe bağlı YZ: istemci, sürümlü istemler, maskeleme, kanıt denetimi
+  model/           kanonik model (pydantic)
+  validate/        20 doğrulama kuralı
+  graph/           graf sorguları (yol, etki, sıra)
+  project/         çalışma alanı, katmanlı ayarlar, düzeltme katmanı, derleme hattı, onay kuyruğu
+  auth.py          kullanıcılar, parolalar, oturumlar
+  api/             web uygulaması (FastAPI), arka plan işleri, uç noktalar
+  static/          arayüz: derleme adımı olmayan ES modülleri (js/core, js/screens)
+  render/          dilimleyici, Archify derleyicisi, motor köprüsü, onarım, galeri
+  engine/          sabitlenmiş Archify zip'i + kilit dosyası
+  examples/        senaryolar, biçim örnekleri (+ beklenen sonuçlar), şablon örneği
 ```
+
+Geliştirme sırasında örnek bir çalışma alanıyla sunucu açmak için
+`python scripts/dev_ortam.py` (giriş bilgisi `.dwhflow-dev/giris.txt`'ye yazılır, git'e girmez).
 
 ## Bilinen sınırlar
 
-- Visio, SSIS, Pentaho, DataStage, COBOL copybook okuyucuları henüz yok.
-- Taranmış (metin katmanı olmayan) PDF'ler okunmaz.
+- SSIS, Pentaho ve COBOL copybook okuyucuları yok; taranmış PDF okunmaz (OCR kapsam dışı).
+- DataStage transformer/lookup/join gibi ara stage'lerin kolon türetmeleri okunmaz; kolon
+  soyu için STTM kullanılır.
 - Veri girdisi/çıktısı bilinmeyen batch job'lar yalnız job zinciri diyagramında görünür.
-- Serbest metinden çıkarılan akışlar taslaktır; kesinleştirmek için STTM ya da SQL
-  gibi yapısal bir kaynakla doğrulanmaları gerekir.
+- Serbest metinden çıkarılan akışlar taslaktır; kesinleştirmek için onay kuyruğundan
+  onaylanmaları ya da STTM/SQL/ETL exportu gibi yapısal bir kaynakla doğrulanmaları gerekir.
+- Oturumlar bellekte tutulur; sunucu yeniden başlayınca yeniden giriş gerekir.
 
 ## Lisans
 
