@@ -244,3 +244,28 @@ iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(
   .topbar { flex-wrap: wrap; }
   .topbar .brand { min-height: 44px; }
 }
+
+/* ---- dokümanlar / doküman inceleme / örnekler / günlük / karşılaştır --- */
+.documents-name { min-width: 170px; overflow-wrap: break-word; }
+.documents-inner { margin-top: 6px; }
+.documents-inner li { font-size: 12px; }
+.documents-actions { flex-wrap: nowrap; gap: 2px; }
+.document-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.document-line { display: block; min-height: 1.45em; }
+.document-line.document-hit, table.data tbody tr.document-hit { background: var(--hl); }
+.document-ln { display: inline-block; min-width: 3.2em; padding-right: 10px; margin-right: 8px; text-align: right;
+  color: var(--muted); border-right: 1px solid var(--line); user-select: none; }
+.document-table td.wrap { white-space: pre-wrap; }
+.document-leftover-tools { margin-top: 6px; }
+.document-notes { margin: 0; padding-left: 18px; }
+.document-side { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow: auto; }
+@media (max-width: 1100px) { .document-side { position: static; max-height: none; } }
+.document-item { cursor: pointer; align-items: flex-start; }
+.document-item:hover { background: var(--accent-soft); }
+.document-item.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.document-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.samples-synonyms { gap: 4px; }
+.audit-summary { font-size: 12px; overflow-wrap: anywhere; }
+.compare-arrow { color: var(--muted); padding: 0 4px; }
+.compare-old { color: var(--bad); text-decoration: line-through; }
+.compare-new { color: var(--ok); }
