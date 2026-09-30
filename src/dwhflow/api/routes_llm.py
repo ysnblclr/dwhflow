@@ -11,8 +11,16 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Request
 
-from ..llm import LLMClient, LLMError, PromptError, list_prompts, load_prompt, mask_text, run_console
-from ..llm import save_prompt_version
+from ..llm import (
+    LLMClient,
+    LLMError,
+    PromptError,
+    list_prompts,
+    load_prompt,
+    mask_text,
+    run_console,
+    save_prompt_version,
+)
 from ..project import settings as settings_mod
 from ..project.settings import SettingsError
 from . import deps
