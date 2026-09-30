@@ -1,7 +1,7 @@
 ﻿<#
   DWHFlow kurulumu (Windows). Depo klasöründe çalıştırın:
 
-      powershell -ExecutionPolicy Bypass -File kur.ps1
+      powershell -ExecutionPolicy Bypass -File kur.ps1     (ya da çift tıklayın: kur.bat)
 
   Yaptıkları: Python 3.11+ ve Node.js 18+ denetimi, proje klasöründe .venv
   sanal ortamı, bağımlılıkların kurulumu (internet gerekir), `dwhflow doctor`.
@@ -80,9 +80,9 @@ $dwhflow = Join-Path $PSScriptRoot '.venv\Scripts\dwhflow.exe'
 
 Write-Host ""
 Write-Host "Kurulum tamam." -ForegroundColor Green
-Write-Host "Arayüzü başlatmak için:   $dwhflow serve   (ilk açılışta bu makinedeki tarayıcıdan yönetici oluşturulur)"
+Write-Host "Başlatmak için:           calistir.bat          (çift tıklayın; ilk açılışta tarayıcıdan yönetici oluşturulur)"
+Write-Host "Ekibe açmak için:         calistir.bat -Ekip"
 Write-Host "Yöneticiyi komutla oluşturmak için:  $dwhflow kullanici ekle ADINIZ --rol yonetici"
-Write-Host "Ekibe açmak için:         $dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI"
 Write-Host "Örneklerle denemek için:  $dwhflow convert --ornek --open"
 
-if ($Serve) { & $dwhflow serve }
+if ($Serve) { & (Join-Path $PSScriptRoot 'calistir.ps1') }

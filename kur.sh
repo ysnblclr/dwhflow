@@ -45,7 +45,7 @@ echo
 .venv/bin/python -m dwhflow.cli doctor || true
 echo
 echo "Kurulum tamam."
-echo "Arayüzü başlatmak için:   .venv/bin/dwhflow serve   (ilk açılışta bu makinedeki tarayıcıdan yönetici oluşturulur)"
+echo "Başlatmak için:           bash calistir.sh   (ilk açılışta bu makinedeki tarayıcıdan yönetici oluşturulur)"
+echo "Ekibe açmak için:         bash calistir.sh --ekip"
 echo "Yöneticiyi komutla oluşturmak için:  .venv/bin/dwhflow kullanici ekle ADINIZ --rol yonetici"
-echo "Ekibe açmak için:         .venv/bin/dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI"
 echo "Örneklerle denemek için:  .venv/bin/dwhflow convert --ornek --open"

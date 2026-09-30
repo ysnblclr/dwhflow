@@ -80,32 +80,39 @@ Gereksinimler:
 
 ### GitHub'dan kurulum (Windows)
 
-Önkoşullar yoksa (bir kez; kurduktan sonra yeni bir PowerShell penceresi açın):
+Yeni bir bilgisayarda PowerShell'e yapıştırın. Git, Python ve Node.js'i kurar, depoyu
+`%USERPROFILE%\dwhflow` altına indirir, DWHFlow'u kurar ve başlatır. Depo özel olduğu için
+`git clone` sırasında GitHub girişi için tarayıcı açılabilir.
 
 ```powershell
-winget install -e --id Git.Git
-winget install -e --id Python.Python.3.12
-winget install -e --id OpenJS.NodeJS.LTS
+winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements
+winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements
+winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+git clone https://github.com/ysnblclr/dwhflow.git "$HOME\dwhflow"
+Set-Location "$HOME\dwhflow"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\kur.ps1
+.\calistir.bat
 ```
 
-Kurulum:
+Önkoşullar zaten kuruluysa yalnız son dört satır yeter. Kurulum dosya gezgininden
+**`kur.bat`**'a çift tıklayarak da yapılır; sonraki açılışlarda **`calistir.bat`**'a çift tıklamak yeterlidir.
+
+| Betik | Ne yapar |
+|---|---|
+| `kur.bat` (`kur.ps1`) | Python 3.11+ ve Node.js 18+ denetimi, proje klasöründe `.venv` sanal ortamı (sistem Python'una dokunmaz), bağımlılıklar, `dwhflow doctor`. `-Dev` test araçlarını da kurar. Yeniden çalıştırmak güvenlidir. |
+| `calistir.bat` (`calistir.ps1`) | Sunucuyu başlatır ve tarayıcıyı açar. Veriler depo klasöründeki `.dwhflow` altındadır. Durdurmak için pencerede Ctrl+C. |
+| `calistir.bat -Ekip` | Ekip sunucusu: ağa açar; bu bilgisayarın adı, tam adı ve IPv4 adresleri izinli olur ve hepsi ekrana yazılır. Ek ad için `-Ad dwhflow.kurum.local`. |
+
+Diğer seçenekler: `-Port 8766`, `-Veri D:\dwhflow-veri`, `-TarayiciAcma`, `-KomutuGoster`
+(çalıştırmadan komutu yazar).
+
+Güncellemek için depo klasöründe:
 
 ```powershell
-git clone https://github.com/ysnblclr/dwhflow.git
-cd dwhflow
-powershell -ExecutionPolicy Bypass -File kur.ps1
+git pull
+powershell -NoProfile -ExecutionPolicy Bypass -File .\kur.ps1
 ```
-
-`kur.ps1` Python ve Node.js sürümlerini denetler, proje klasöründe `.venv` sanal
-ortamını kurar (sistem Python'una dokunmaz), bağımlılıkları yükler ve
-`dwhflow doctor` çalıştırır. `-Dev` test araçlarını da kurar, `-Serve` bitince
-arayüzü açar. Sonra:
-
-```powershell
-.\.venv\Scripts\dwhflow serve
-```
-
-Güncellemek için depo klasöründe `git pull` ve ardından `kur.ps1`'i yeniden çalıştırın.
 
 ### GitHub'dan kurulum (Linux / macOS)
 
@@ -114,8 +121,11 @@ git clone https://github.com/ysnblclr/dwhflow.git && cd dwhflow && bash kur.sh
 ```
 
 ```bash
-.venv/bin/dwhflow serve
+bash calistir.sh
 ```
+
+Ekip sunucusu için `bash calistir.sh --ekip`; diğer seçenekler `--ad`, `--port`, `--veri`,
+`--tarayici-acma`, `--komutu-goster`.
 
 ### Elle kurulum
 
@@ -154,18 +164,22 @@ platforma bağlıdır — paketin hedefe göre hazırlanmasının sebebi bu.
 
 ### Ekip uygulaması
 
-```bash
-dwhflow serve
+`calistir.bat` (ya da `dwhflow serve`) ile `http://127.0.0.1:8765` adresinde açılır.
+**Giriş zorunludur.** İlk açılışta sunucu makinesindeki tarayıcıdan yönetici hesabı
+oluşturulur (ya da komutla: `dwhflow kullanici ekle ADINIZ --rol yonetici`). Ekibe açmak için:
+
+```powershell
+.\calistir.bat -Ekip
 ```
 
-`http://127.0.0.1:8765` adresinde açılır. **Giriş zorunludur.** İlk açılışta sunucu
-makinesindeki tarayıcıdan yönetici hesabı oluşturulur (ya da komutla:
-`dwhflow kullanici ekle ADINIZ --rol yonetici`). Ekibe açmak için:
+Ekip üyeleri ekranda yazan adreslerden birini (ör. `http://SUNUCU_ADI:8765`) açar. Bağlanamıyorlarsa
+sunucuda Windows Güvenlik Duvarı'nda port bir kez açılmalıdır (yönetici PowerShell'de):
 
-```bash
-dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI
+```powershell
+New-NetFirewallRule -DisplayName 'DWHFlow 8765' -Direction Inbound -Protocol TCP -LocalPort 8765 -Action Allow -Profile Domain,Private
 ```
 
+Elle başlatmak için eşdeğer komut: `dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI`.
 Trafik şifresizdir; kurum içinde HTTPS sağlayan bir ters vekil (IIS/nginx) arkasında
 çalıştırın. Roller: **izleyici** (okur), **düzenleyici** (doküman yükler, düzeltir, onaylar,
 proje ayarı yapar), **yönetici** (kullanıcılar, genel ayarlar, LLM profilleri, istemler).
