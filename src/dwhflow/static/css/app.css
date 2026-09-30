@@ -235,6 +235,7 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; border-radius: 2px
 iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 
 /* ---- dokümanlar / doküman inceleme / örnekler / günlük / karşılaştır --- */
+.documents-name { min-width: 170px; overflow-wrap: break-word; }
 .documents-inner { margin-top: 6px; }
 .documents-inner li { font-size: 12px; }
 .documents-actions { flex-wrap: nowrap; gap: 2px; }

@@ -77,10 +77,11 @@ function acceptedHint(formats) {
   for (const item of formats.formats || []) for (const suffix of item.suffixes || []) suffixes.add(suffix);
   for (const suffix of formats.archives || []) suffixes.add(suffix);
   const list = [...suffixes].sort().join(' ');
+  const archives = (formats.archives || []).length ? ' (arşivler açılır)' : '';
   const fallback = formats.fallback?.available
     ? ' Genel dönüştürücü kurulu: diğer türler de metin olarak okunur.'
     : '';
-  return `Okunan türler: ${list || '—'} (arşivler açılır).${fallback} Aynı adla yüklenen dosya yeni sürüm olur.`;
+  return `Okunan türler: ${list || '—'}${archives}.${fallback} Aynı adla yüklenen dosya yeni sürüm olur.`;
 }
 
 // ---- pencereler --------------------------------------------------------- //
@@ -293,7 +294,7 @@ export async function render(root, { slug }) {
   }
 
   const columns = [
-    { key: 'name', label: 'Doküman', wrap: true, render: (d) => h('div', {},
+    { key: 'name', label: 'Doküman', render: (d) => h('div', { class: 'documents-name' },
       h('a', { href: link('p', slug, 'dokuman', d.name), text: d.name }),
       d.forced_reader ? h('div', { class: 'small muted', text: `okuyucu zorlandı: ${d.forced_reader}` }) : null,
       innerList(d)) },
