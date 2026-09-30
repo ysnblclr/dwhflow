@@ -1,0 +1,17 @@
+{
+  "aciklama": "Control-M XML (.xml) içerikten tanınmalı; INCOND/OUTCOND(+) eşleşmesi sıra olur, SUB_FOLDER içindeki job da okunur; önceki güne (PREV) bağlı, dış ve silinen koşullar sıra sayılmaz; VEYA koşulunda üreticiden kenar eklenir",
+  "format": "controlm",
+  "datasets": [],
+  "processes": ["EXT_KART", "MFT_KART", "TPT_STG_KART", "SP_ODS_KART", "LOAD_D_MUSTERI", "LOAD_F_KART_ISLEM", "LOAD_MART_KART_OZET", "EXP_BDDK"],
+  "links": [],
+  "precedes": [
+    ["EXT_KART", "MFT_KART"],
+    ["MFT_KART", "TPT_STG_KART"],
+    ["TPT_STG_KART", "SP_ODS_KART"],
+    ["SP_ODS_KART", "LOAD_F_KART_ISLEM"],
+    ["LOAD_D_MUSTERI", "LOAD_F_KART_ISLEM"],
+    ["LOAD_F_KART_ISLEM", "LOAD_MART_KART_OZET"],
+    ["LOAD_MART_KART_OZET", "EXP_BDDK"]
+  ],
+  "subset": false
+}

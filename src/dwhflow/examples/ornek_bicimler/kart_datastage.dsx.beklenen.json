@@ -1,0 +1,14 @@
+{
+  "aciklama": "DataStage .dsx: dosya/connector stage'leri tablo ve dosya olur (#pDb#. şema parametresi atılır, GenerateSQL=0 ise SQL okunur, DELETE/COLLECT STATISTICS akış sayılmaz), transformer ara adımdır; sequence sırası sequencer'dan geçer, hata dalı sayılmaz",
+  "format": "datastage",
+  "datasets": ["KART_ISLEM_YYYYMMDD.dat", "KART_ISLEM_RED_YYYYMMDD.dat", "STG_KART_ISLEM", "ODS_KART_ISLEM", "SRC_MUSTERI", "STG_MUSTERI"],
+  "processes": ["PX_STG_KART", "PX_ODS_KART", "PX_STG_MUSTERI", "SEQ_KART_GECE"],
+  "links": [
+    ["KART_ISLEM_YYYYMMDD.dat", "STG_KART_ISLEM"],
+    ["KART_ISLEM_YYYYMMDD.dat", "KART_ISLEM_RED_YYYYMMDD.dat"],
+    ["STG_KART_ISLEM", "ODS_KART_ISLEM"],
+    ["SRC_MUSTERI", "STG_MUSTERI"]
+  ],
+  "precedes": [["PX_STG_KART", "PX_ODS_KART"], ["PX_STG_MUSTERI", "PX_ODS_KART"]],
+  "subset": false
+}

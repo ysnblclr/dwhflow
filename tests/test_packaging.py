@@ -48,9 +48,16 @@ def declared_distributions(pyproject: dict) -> set[str]:
 
 
 def imported_modules() -> set[str]:
-    """Kaynak ağacındaki tüm üçüncü parti üst seviye import'lar."""
+    """Kaynak ağacındaki tüm üçüncü parti üst seviye import'lar.
+
+    ``examples/`` altındaki .py dosyaları paket kodu değil, okunacak örnek dokümanlardır
+    (ör. Airflow DAG'ı); hiçbir zaman içe aktarılmaz, bu yüzden taramaya girmez.
+    """
     found: set[str] = set()
+    examples = SRC / "examples"
     for path in SRC.rglob("*.py"):
+        if examples in path.parents:
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):

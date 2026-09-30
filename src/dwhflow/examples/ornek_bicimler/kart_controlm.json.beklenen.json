@@ -1,0 +1,14 @@
+{
+  "aciklama": "Control-M Automation API JSON (.json) içerikten tanınmalı; olaylar (WaitForEvents/AddEvents) ve Flow Sequence sıra olur, SubFolder okunur; VEYA ve dış olay not edilir, PreviousOrderDate sıra sayılmaz",
+  "format": "controlm_json",
+  "datasets": [],
+  "processes": ["EXT_MUSTERI", "TPT_STG_MUSTERI", "SP_ODS_MUSTERI", "LOAD_D_MUSTERI", "DQ_D_MUSTERI"],
+  "links": [],
+  "precedes": [
+    ["EXT_MUSTERI", "TPT_STG_MUSTERI"],
+    ["TPT_STG_MUSTERI", "SP_ODS_MUSTERI"],
+    ["SP_ODS_MUSTERI", "LOAD_D_MUSTERI"],
+    ["LOAD_D_MUSTERI", "DQ_D_MUSTERI"]
+  ],
+  "subset": false
+}

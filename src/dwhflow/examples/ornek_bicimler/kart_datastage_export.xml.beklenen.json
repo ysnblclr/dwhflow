@@ -1,0 +1,13 @@
+{
+  "aciklama": "DataStage XML (DSExport) exportu içerikten tanınmalı; lookup referansı okunan tablo olur, connector XMLProperties kaçışlı gömülü XML'dir; sequence'ta hata dalı sayılmaz",
+  "format": "datastage_xml",
+  "datasets": ["ODS_MUSTERI", "DWH.D_MUSTERI", "ODS_KART_ISLEM", "DWH.F_KART_ISLEM"],
+  "processes": ["PX_LOAD_D_MUSTERI", "PX_LOAD_F_KART_ISLEM", "SEQ_KART_DWH"],
+  "links": [
+    ["ODS_MUSTERI", "DWH.D_MUSTERI"],
+    ["ODS_KART_ISLEM", "DWH.F_KART_ISLEM"],
+    ["DWH.D_MUSTERI", "DWH.F_KART_ISLEM"]
+  ],
+  "precedes": [["PX_LOAD_D_MUSTERI", "PX_LOAD_F_KART_ISLEM"]],
+  "subset": false
+}
