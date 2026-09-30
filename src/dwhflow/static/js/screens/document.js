@@ -158,6 +158,30 @@ function highlightItem(root, item) {
   }
 }
 
+// ---- ad çözümleme (sunucudaki NameIndex'in yaklaşığı) ------------------- //
+
+const FILE_NAME = /\.(dat|csv|txt|asc|ebc|bin|xml|json|gz|zip|out|fix)$/i;
+const bareKey = (key) => (FILE_NAME.test(key) ? key : key.slice(key.lastIndexOf('.') + 1));
+
+/** Ad modelde (tam ya da şemasız) bir nesneye çözülür mü? Büyük/küçük harf ve Türkçe karakter duyarsız. */
+function knownName(raw, names) {
+  const key = fold(String(raw).trim());
+  if (!key) return false;
+  if (names.some((n) => fold(n) === key)) return true;
+  if (FILE_NAME.test(key)) return false;
+  const bare = bareKey(key);
+  return names.some((n) => bareKey(fold(n)) === bare);
+}
+
+/** Metindeki tablo adına benzeyen sözcükler: alt çizgi ya da şema noktası taşıyan, büyük harfli adlar. */
+function tableLikeTokens(text) {
+  const out = [];
+  for (const [token] of String(text).matchAll(/[\p{L}\p{N}_$#]+(?:\.[\p{L}\p{N}_$#]+)*/gu)) {
+    if (token.length >= 4 && /[A-Z]/.test(token) && (token.includes('_') || token.includes('.'))) out.push(token);
+  }
+  return [...new Set(out)];
+}
+
 // ---- blok eşleme ----------------------------------------------------------- //
 
 function escapeRegExp(text) {
@@ -508,21 +532,37 @@ export async function render(root, params, query = {}) {
       h('datalist', { id: 'document-dataset-names' }, names.datasets.map((n) => h('option', { value: n }))),
       h('datalist', { id: 'document-process-names' }, names.processes.map((n) => h('option', { value: n }))),
     ];
-    // Paragrafta geçen bilinen adlar: tıklanınca boş olan alana yazılır.
+    const allNames = [...names.datasets, ...names.processes];
+    const missing = () => [...new Set(['kaynak', 'hedef'].map((f) => input(f).value.trim()).filter((v) => v && !knownName(v, allNames)))];
+
+    // Paragrafta geçen adlar (bilinenler ve tablo adına benzeyen yeni adlar): tıklanınca boş alana yazılır.
     const paragraph = normalize(leftover.text || '');
-    const mentioned = names.datasets.filter((n) => findRanges(paragraph, n, { word: true }).length > 0).slice(0, 12);
+    const candidates = new Map();
+    for (const n of names.datasets) if (findRanges(paragraph, n, { word: true }).length) candidates.set(fold(n), n);
+    for (const token of tableLikeTokens(leftover.text || '')) if (!candidates.has(fold(token))) candidates.set(fold(token), token);
     const fill = (value) => {
       const target = !input('kaynak').value.trim() ? input('kaynak') : input('hedef');
       target.value = value;
       target.focus();
+      updateMissing();
     };
-    const chips = mentioned.length
+    const chips = candidates.size
       ? h('div', { class: 'row' }, h('span', { class: 'small muted', text: 'Paragrafta geçen:' }),
-        mentioned.map((n) => h('button', { type: 'button', class: 'btn small ghost', onclick: () => fill(n) }, n)))
+        [...candidates.values()].slice(0, 16).map((n) => h('button', {
+          type: 'button', class: 'btn small ghost', onclick: () => fill(n),
+          title: knownName(n, allNames) ? 'Modelde var' : 'Modelde yok; bağla birlikte yeni tablo olarak eklenir',
+        }, n, knownName(n, allNames) ? null : h('span', { class: 'badge warn', text: 'yeni' }))))
       : null;
+    const missingNote = h('div', { class: 'small', style: { color: 'var(--warn)' }, role: 'status' });
+    const updateMissing = () => {
+      const list = missing();
+      missingNote.textContent = list.length ? `Modelde bulunamadı; bağla birlikte yeni tablo/dosya olarak eklenecek: ${list.join(', ')}` : '';
+    };
+    input('kaynak').addEventListener('input', updateMissing);
+    input('hedef').addEventListener('input', updateMissing);
     const body = h('div', { class: 'stack' },
       evidence({ file: name, locator: leftover.locator, evidence: leftover.text }),
-      chips, form.el, datalists);
+      chips, form.el, missingNote, datalists);
 
     let submitting = false;
     let created = null;
@@ -542,11 +582,13 @@ export async function render(root, params, query = {}) {
             if (fold(kaynak) === fold(hedef)) { toast('Kaynak ve hedef aynı olamaz', 'warn'); return false; }
             submitting = true;
             try {
-              const response = await post(p`/api/projects/${slug}/corrections`, {
-                ops: [{ islem: 'bag_ekle', hedef: { kaynak, hedef }, deger: surec ? { surec } : {},
-                  neden: `Doküman: ${name} · ${leftover.locator}`.slice(0, 500) }],
-              });
-              created = (response.created || [])[0] || null;
+              // Modelde olmayan uçlar önce nesne olarak eklenir; işlemler birlikte (hepsi ya da hiçbiri) uygulanır.
+              const neden = `Doküman: ${name} · ${leftover.locator}`.slice(0, 500);
+              const ops = missing().map((ad) => ({ islem: 'nesne_ekle', hedef: { ad, tip: 'dataset' }, deger: {}, neden }));
+              ops.push({ islem: 'bag_ekle', hedef: { kaynak, hedef }, deger: surec ? { surec } : {}, neden });
+              const response = await post(p`/api/projects/${slug}/corrections`, { ops });
+              const list = response.created || [];
+              created = list[list.length - 1] || null;
               return true;
             } finally { submitting = false; }
           },
