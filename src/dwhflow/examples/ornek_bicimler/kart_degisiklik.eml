@@ -1,0 +1,42 @@
+From: =?utf-8?b?QXnFn2UgWcSxbG1heg==?= <ayse.yilmaz@ornek-banka.com.tr>
+To: dwh-ekibi@ornek-banka.com.tr
+Subject: =?utf-8?q?Kart_mart_y=C3=BCklemesi_de=C4=9Fi=C5=9Fikli=C4=9Fi?=
+Date: Tue, 15 Sep 2026 09:15:00 +0300
+Message-ID: <kart-degisiklik-1@ornek-banka.com.tr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="=_dwhflow_ornek_0"
+
+Bu çok parçalı bir MIME iletisidir.
+
+--=_dwhflow_ornek_0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+TWVyaGFiYSwKCllhcsSxbmRhbiBpdGliYXJlbiBEV0guTUFSVF9LQVJUX09aRVQgdGFibG9zdW5k
+YW4gRVhQX0JEREtfS0FSVCBkb3N5YXPEsW5hIEVYUF9CRERLIGnFn2l5bGUKYWt0YXLEsW0geWFw
+xLFsYWNhay4gR8O8bmNlbCBTVFRNIHZlIG1hcnQgecO8a2xlbWUgYmV0acSfaSBla3RlLgoKxLB5
+aSDDp2FsxLHFn21hbGFyLApBecWfZSBZxLFsbWF6ClZlcmkgQW1iYXLEsSBFa2liaQo=
+--=_dwhflow_ornek_0
+Content-Type: text/csv; name="kart_sttm_ek.csv"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="kart_sttm_ek.csv"
+
+S2F5bmFrIFRhYmxvO0hlZGVmIFRhYmxvO0pvYgpPRFNfS0FSVF9JU0xFTTtEV0guRl9LQVJUX0lT
+TEVNO0xPQURfRl9LQVJUX0lTTEVNCg==
+--=_dwhflow_ornek_0
+Content-Type: application/sql; name="LOAD_MART_KART_OZET.sql"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="LOAD_MART_KART_OZET.sql"
+
+LS0gS2FydCBtYXJ0IHnDvGtsZW1lc2kKSU5TRVJUIElOVE8gRFdILk1BUlRfS0FSVF9PWkVUClNF
+TEVDVCBtLlNFR01FTlQsIGYuSVNMRU1fVEFSSUhJLCBTVU0oZi5UVVRBUl9UTCkKRlJPTSBEV0gu
+Rl9LQVJUX0lTTEVNIGYgSk9JTiBEV0guRF9NVVNURVJJIG0gT04gbS5NVVNURVJJX0tFWSA9IGYu
+TVVTVEVSSV9LRVkKR1JPVVAgQlkgbS5TRUdNRU5ULCBmLklTTEVNX1RBUklISTsK
+--=_dwhflow_ornek_0
+Content-Type: image/png; name="imza.png"
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="imza.png"
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOc
+QAAAAABJRU5ErkJggg==
+--=_dwhflow_ornek_0--

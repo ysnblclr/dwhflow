@@ -26,6 +26,7 @@ MODULE_TO_DIST = {
     "multipart": "python-multipart",
     "python_multipart": "python-multipart",
     "dateutil": "python-dateutil",
+    "extract_msg": "extract-msg",  # isteğe bağlı [ofis] eki
 }
 
 

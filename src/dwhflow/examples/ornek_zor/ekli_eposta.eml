@@ -1,0 +1,39 @@
+From: =?utf-8?b?QXnFn2UgWcSxbG1heg==?= <ayse.yilmaz@ornek-banka.com.tr>
+Subject: Ekler
+Date: Tue, 15 Sep 2026 10:00:00 +0300
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="=_dwhflow_zor_0"
+
+Bu çok parçalı bir MIME iletisidir.
+
+--=_dwhflow_zor_0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+RWt0ZWtpIFNUVE0neWUgYmFrxLFuxLF6LiBBeXLEsWNhIGlsZXRpbGVuIG5vdHUgb2t1eXVuLgo=
+--=_dwhflow_zor_0
+Content-Type: text/csv; name="kart_sttm_ek.csv"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="kart_sttm_ek.csv"
+
+S2F5bmFrIFRhYmxvO0hlZGVmIFRhYmxvO0pvYgpPRFNfS0FSVF9JU0xFTTtEV0guRl9LQVJUX0lT
+TEVNO0xPQURfRl9LQVJUX0lTTEVNCg==
+--=_dwhflow_zor_0
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename="stg_notu.eml"
+
+From: Mehmet Kaya <mehmet.kaya@ornek-banka.com.tr>
+Subject: STG notu
+Date: Mon, 14 Sep 2026 17:00:00 +0300
+Content-Type: text/plain; charset=utf-8
+
+SRC_MUSTERI tablosundan STG_MUSTERI tablosuna aktarılır.
+
+--=_dwhflow_zor_0
+Content-Type: image/png; name="imza.png"
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="imza.png"
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOc
+QAAAAABJRU5ErkJggg==
+--=_dwhflow_zor_0--
