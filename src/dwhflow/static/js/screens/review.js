@@ -135,14 +135,24 @@ export async function render(root, { slug }) {
         { name: 'kaynak', label: 'Kaynak (okunan tablo/dosya)', required: true, suggestions: names },
         { name: 'hedef', label: 'Hedef (yazılan tablo/dosya)', required: true, suggestions: names },
         { name: 'surec', label: 'Süreç (isteğe bağlı)', suggestions: procs.map((x) => x.name), hint: 'Modelde yoksa eklenir; boşsa doğrudan bağ kurulur.' },
+        { name: 'olustur', label: 'Modelde olmayan kaynak/hedefi yeni tablo olarak ekle', type: 'checkbox', value: false, wide: true },
         { name: 'kapat', label: 'Paragrafı kuyruktan kaldır (başka akış yok)', type: 'checkbox', value: true, wide: true },
         edit.reasonField(`Paragraf: ${item.file} · ${item.locator}`),
       ],
       validate: (v) => (fold(v.kaynak.trim()) === fold(v.hedef.trim()) ? 'Kaynak ile hedef aynı olamaz' : null),
       onSubmit: async (v) => {
+        const missing = await edit.missingDatasets(slug, [v.kaynak, v.hedef]);
+        if (missing.length && !v.olustur) {
+          throw new Error(`Modelde bulunamadı: ${missing.join(', ')}. Adı düzeltin ya da "yeni tablo olarak ekle" seçeneğini işaretleyin.`);
+        }
+        if (missing.some((name) => name.includes('#'))) throw new Error("Yeni tablo adı '#' içeremez (kolon ayırıcısı)");
         const [kaynak, hedef] = await Promise.all([edit.nodeRef(slug, v.kaynak), edit.nodeRef(slug, v.hedef)]);
         const surec = v.surec.trim();
-        await edit.sendOps(slug, [edit.op('bag_ekle', { kaynak, hedef }, surec ? { surec } : null, v.neden)]);
+        // Eksik uçlar ve bağ tek istekte: biri tutmazsa hiçbiri kaydedilmez.
+        await edit.sendOps(slug, [
+          ...missing.map((name) => edit.op('nesne_ekle', { ad: name, tip: 'dataset' }, null, v.neden)),
+          edit.op('bag_ekle', { kaynak, hedef }, surec ? { surec } : null, v.neden),
+        ]);
         return v;
       },
     });

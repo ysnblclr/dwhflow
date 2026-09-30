@@ -119,6 +119,20 @@ export async function nodeRef(slug, name, known) {
   return text;
 }
 
+/**
+ * Modelde bulunamayan veri nesnesi adları. Sunucunun kendi ad çözümlemesi kullanılır (şemasız ad,
+ * eski ad, birleşen ad da eşleşir): nesne_ekle önizlemesi yeni nesne ekliyorsa ad modelde yoktur.
+ */
+export async function missingDatasets(slug, names) {
+  const unique = [...new Set(names.map((n) => String(n ?? '').trim()).filter(Boolean))];
+  const checks = await Promise.all(unique.map(async (name) => {
+    const diff = await post(p`/api/projects/${slug}/corrections/preview`, { ops: [op('nesne_ekle', { ad: name, tip: 'dataset' })] });
+    const ok = (diff.results || []).every((r) => r.durum === 'uygulandi');
+    return ok && (diff.nodes_added || []).length ? name : null;
+  }));
+  return checks.filter(Boolean);
+}
+
 // ---- alanlı düzenleme penceresi ------------------------------------------ //
 
 function buildField(spec) {
