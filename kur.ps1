@@ -80,7 +80,9 @@ $dwhflow = Join-Path $PSScriptRoot '.venv\Scripts\dwhflow.exe'
 
 Write-Host ""
 Write-Host "Kurulum tamam." -ForegroundColor Green
-Write-Host "Arayüzü başlatmak için:   $dwhflow serve"
+Write-Host "Arayüzü başlatmak için:   $dwhflow serve   (ilk açılışta bu makinedeki tarayıcıdan yönetici oluşturulur)"
+Write-Host "Yöneticiyi komutla oluşturmak için:  $dwhflow kullanici ekle ADINIZ --rol yonetici"
+Write-Host "Ekibe açmak için:         $dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI"
 Write-Host "Örneklerle denemek için:  $dwhflow convert --ornek --open"
 
 if ($Serve) { & $dwhflow serve }

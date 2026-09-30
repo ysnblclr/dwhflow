@@ -121,7 +121,9 @@ KULLANIM
     dwhflow doctor                      kurulumu denetler
     dwhflow convert --ornek --open      örnek dokümanlarla dener
     dwhflow convert ./dokumanlarim -o ./cikti
-    dwhflow serve                       tarayıcı arayüzü (http://127.0.0.1:8765)
+    dwhflow serve                       ekip arayüzü (http://127.0.0.1:8765)
+    dwhflow kullanici ekle ADI --rol yonetici   ilk yönetici (ya da tarayıcıdan ilk kurulum)
+    dwhflow serve --host 0.0.0.0 --allow-host SUNUCU   ekibe açmak için
     dwhflow --help                      tüm komutlar
 
 SORUN GİDERME

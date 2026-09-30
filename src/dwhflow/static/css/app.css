@@ -233,3 +233,14 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; border-radius: 2px
 .dropzone { border: 2px dashed var(--line); border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; }
 .dropzone:hover, .dropzone.hot, .dropzone:focus { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+
+/* ---- üst menü: orta ve dar ekranlar ------------------------------------ */
+@media (max-width: 1360px) {
+  .topbar .nav-item, .topbar button.nav-item { padding: 0 8px; }
+  .topbar .search-btn kbd { display: none; }
+  .topbar .project-switch .name { max-width: 130px; }
+}
+@media (max-width: 1100px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar .brand { min-height: 44px; }
+}
