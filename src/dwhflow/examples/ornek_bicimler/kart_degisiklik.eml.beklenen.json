@@ -1,0 +1,35 @@
+{
+  "aciklama": "E-posta: gövde (başlık bilgisiyle) ve ekler (CSV, SQL) ayrı doküman; satır içi imza görseli atlanır",
+  "datasets": [
+    "DWH.MART_KART_OZET",
+    "EXP_BDDK_KART",
+    "ODS_KART_ISLEM",
+    "DWH.F_KART_ISLEM",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "EXP_BDDK",
+    "LOAD_F_KART_ISLEM",
+    "LOAD_MART_KART_OZET"
+  ],
+  "links": [
+    [
+      "DWH.MART_KART_OZET",
+      "EXP_BDDK_KART"
+    ],
+    [
+      "ODS_KART_ISLEM",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "DWH.F_KART_ISLEM",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.MART_KART_OZET"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

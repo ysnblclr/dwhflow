@@ -1,0 +1,55 @@
+{
+  "aciklama": "Graphviz: job zinciri (önce gelir), kapsamlı düğüm varsayılanları, alt grafik ucu, kenar etiketi job",
+  "format": "dot",
+  "datasets": [
+    "SRC_MUSTERI",
+    "STG_MUSTERI",
+    "ODS_MUSTERI",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "EXT_KART",
+    "MFT_KART",
+    "TPT_STG_KART",
+    "SP_ODS_KART",
+    "LOAD_D_MUSTERI",
+    "LOAD_F_KART_ISLEM"
+  ],
+  "links": [
+    [
+      "SRC_MUSTERI",
+      "STG_MUSTERI"
+    ],
+    [
+      "STG_MUSTERI",
+      "ODS_MUSTERI"
+    ],
+    [
+      "ODS_MUSTERI",
+      "DWH.D_MUSTERI"
+    ]
+  ],
+  "precedes": [
+    [
+      "EXT_KART",
+      "MFT_KART"
+    ],
+    [
+      "MFT_KART",
+      "TPT_STG_KART"
+    ],
+    [
+      "TPT_STG_KART",
+      "SP_ODS_KART"
+    ],
+    [
+      "SP_ODS_KART",
+      "LOAD_F_KART_ISLEM"
+    ],
+    [
+      "LOAD_D_MUSTERI",
+      "LOAD_F_KART_ISLEM"
+    ]
+  ],
+  "subset": false
+}

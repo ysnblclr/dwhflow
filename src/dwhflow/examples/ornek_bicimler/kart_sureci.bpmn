@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  id="Tanimlar_Kart" targetNamespace="http://ornek-banka.com.tr/bpmn/kart"
+                  exporter="Camunda Modeler" exporterVersion="5.20.0">
+  <bpmn:collaboration id="Isbirligi_Kart">
+    <bpmn:participant id="Havuz_Kart" name="Kart gece zinciri" processRef="Surec_Kart" />
+  </bpmn:collaboration>
+  <bpmn:dataStore id="DS_SRC_KART" name="SRC_KART_ISLEM" />
+  <bpmn:process id="Surec_Kart" isExecutable="false">
+    <bpmn:dataObject id="DO_DAT" name="KART_ISLEM_YYYYMMDD.dat" />
+    <bpmn:dataObject id="DO_EXP" />
+    <bpmn:dataStoreReference id="Ref_SRC" dataStoreRef="DS_SRC_KART" />
+    <bpmn:dataObjectReference id="Ref_DAT" dataObjectRef="DO_DAT" />
+    <bpmn:dataStoreReference id="Ref_STG" name="STG_KART_ISLEM" />
+    <bpmn:dataStoreReference id="Ref_ODS" name="ODS_KART_ISLEM" />
+    <bpmn:dataStoreReference id="Ref_F" name="DWH.F_KART_ISLEM" />
+    <bpmn:dataStoreReference id="Ref_MART" name="DWH.MART_KART_OZET" />
+    <bpmn:dataObjectReference id="Ref_EXP" name="EXP_BDDK_KART" dataObjectRef="DO_EXP" />
+
+    <bpmn:startEvent id="Basla" name="01:00">
+      <bpmn:outgoing>Akis_1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="Zaman_1" />
+    </bpmn:startEvent>
+    <bpmn:task id="Gorev_EXT" name="EXT_KART">
+      <bpmn:incoming>Akis_1</bpmn:incoming>
+      <bpmn:outgoing>Akis_2</bpmn:outgoing>
+      <bpmn:property id="Girdi_EXT" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_EXT">
+        <bpmn:sourceRef>Ref_SRC</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_EXT</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_EXT">
+        <bpmn:targetRef>Ref_DAT</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:serviceTask id="Gorev_MFT" name="MFT_KART">
+      <bpmn:incoming>Akis_2</bpmn:incoming>
+      <bpmn:outgoing>Akis_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:task id="Gorev_TPT" name="TPT_STG_KART">
+      <bpmn:incoming>Akis_3</bpmn:incoming>
+      <bpmn:outgoing>Akis_4</bpmn:outgoing>
+      <bpmn:property id="Girdi_TPT" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_TPT">
+        <bpmn:sourceRef>Ref_DAT</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_TPT</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_TPT">
+        <bpmn:targetRef>Ref_STG</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Kapi_Dosya" name="Dosya tamam mı?" default="Akis_5">
+      <bpmn:incoming>Akis_4</bpmn:incoming>
+      <bpmn:outgoing>Akis_5</bpmn:outgoing>
+      <bpmn:outgoing>Akis_Hata</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="Hata" name="Hata bildir">
+      <bpmn:incoming>Akis_Hata</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Gorev_SP" name="SP_ODS_KART">
+      <bpmn:incoming>Akis_5</bpmn:incoming>
+      <bpmn:outgoing>Akis_6</bpmn:outgoing>
+      <bpmn:property id="Girdi_SP" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_SP">
+        <bpmn:sourceRef>Ref_STG</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_SP</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_SP">
+        <bpmn:targetRef>Ref_ODS</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:scriptTask>
+    <bpmn:parallelGateway id="Kapi_Paralel">
+      <bpmn:incoming>Akis_6</bpmn:incoming>
+      <bpmn:outgoing>Akis_7</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Gorev_LF" name="LOAD_F_KART_ISLEM">
+      <bpmn:incoming>Akis_7</bpmn:incoming>
+      <bpmn:outgoing>Akis_8</bpmn:outgoing>
+      <bpmn:property id="Girdi_LF" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_LF">
+        <bpmn:sourceRef>Ref_ODS</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_LF</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_LF">
+        <bpmn:targetRef>Ref_F</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Gorev_LM" name="LOAD_MART_KART_OZET">
+      <bpmn:incoming>Akis_8</bpmn:incoming>
+      <bpmn:outgoing>Akis_9</bpmn:outgoing>
+      <bpmn:property id="Girdi_LM" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_LM">
+        <bpmn:sourceRef>Ref_F</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_LM</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_LM">
+        <bpmn:targetRef>Ref_MART</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sendTask id="Gorev_EXP" name="EXP_BDDK">
+      <bpmn:incoming>Akis_9</bpmn:incoming>
+      <bpmn:outgoing>Akis_10</bpmn:outgoing>
+      <bpmn:property id="Girdi_EXP" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_EXP">
+        <bpmn:sourceRef>Ref_MART</bpmn:sourceRef>
+        <bpmn:targetRef>Girdi_EXP</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_EXP">
+        <bpmn:targetRef>Ref_EXP</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="Bitis" name="Bitti">
+      <bpmn:incoming>Akis_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Akis_1" sourceRef="Basla" targetRef="Gorev_EXT" />
+    <bpmn:sequenceFlow id="Akis_2" sourceRef="Gorev_EXT" targetRef="Gorev_MFT" />
+    <bpmn:sequenceFlow id="Akis_3" sourceRef="Gorev_MFT" targetRef="Gorev_TPT" />
+    <bpmn:sequenceFlow id="Akis_4" sourceRef="Gorev_TPT" targetRef="Kapi_Dosya" />
+    <bpmn:sequenceFlow id="Akis_5" name="evet" sourceRef="Kapi_Dosya" targetRef="Gorev_SP" />
+    <bpmn:sequenceFlow id="Akis_Hata" name="hayır" sourceRef="Kapi_Dosya" targetRef="Hata" />
+    <bpmn:sequenceFlow id="Akis_6" sourceRef="Gorev_SP" targetRef="Kapi_Paralel" />
+    <bpmn:sequenceFlow id="Akis_7" sourceRef="Kapi_Paralel" targetRef="Gorev_LF" />
+    <bpmn:sequenceFlow id="Akis_8" sourceRef="Gorev_LF" targetRef="Gorev_LM" />
+    <bpmn:sequenceFlow id="Akis_9" sourceRef="Gorev_LM" targetRef="Gorev_EXP" />
+    <bpmn:sequenceFlow id="Akis_10" sourceRef="Gorev_EXP" targetRef="Bitis" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diyagram_Kart">
+    <bpmndi:BPMNPlane id="Duzlem_Kart" bpmnElement="Isbirligi_Kart" />
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

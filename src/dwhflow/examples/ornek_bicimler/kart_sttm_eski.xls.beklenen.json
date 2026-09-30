@@ -1,0 +1,64 @@
+{
+  "aciklama": "Excel 97-2003 (BIFF8, xlrd): STTM sayfası, job bağımlılıkları ve tablo olmayan sayfadaki uzun metin",
+  "format": "xls",
+  "datasets": [
+    "SRC_KART_ISLEM",
+    "KART_ISLEM_YYYYMMDD.dat",
+    "STG_KART_ISLEM",
+    "ODS_KART_ISLEM",
+    "DWH.F_KART_ISLEM",
+    "SRC_MUSTERI",
+    "STG_MUSTERI",
+    "ODS_MUSTERI",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "EXT_KART",
+    "TPT_STG_KART",
+    "SP_ODS_KART",
+    "LOAD_F_KART_ISLEM",
+    "MFT_KART",
+    "LOAD_D_MUSTERI"
+  ],
+  "links": [
+    [
+      "SRC_KART_ISLEM",
+      "KART_ISLEM_YYYYMMDD.dat"
+    ],
+    [
+      "KART_ISLEM_YYYYMMDD.dat",
+      "STG_KART_ISLEM"
+    ],
+    [
+      "STG_KART_ISLEM",
+      "ODS_KART_ISLEM"
+    ],
+    [
+      "SRC_MUSTERI",
+      "STG_MUSTERI"
+    ],
+    [
+      "ODS_KART_ISLEM",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "ODS_MUSTERI",
+      "DWH.D_MUSTERI"
+    ]
+  ],
+  "precedes": [
+    [
+      "MFT_KART",
+      "TPT_STG_KART"
+    ],
+    [
+      "TPT_STG_KART",
+      "SP_ODS_KART"
+    ],
+    [
+      "SP_ODS_KART",
+      "LOAD_F_KART_ISLEM"
+    ]
+  ],
+  "subset": false
+}

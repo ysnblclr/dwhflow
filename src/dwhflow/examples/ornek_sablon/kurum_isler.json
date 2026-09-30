@@ -1,0 +1,18 @@
+{
+  "surum": 2,
+  "olusturma": "2026-09-15T09:00:00",
+  "jobs": [
+    {
+      "name": "LOAD_MART_KART_OZET",
+      "steps": [
+        {"from": ["DWH.F_KART_ISLEM", "DWH.D_MUSTERI"], "to": "DWH.MART_KART_OZET", "not": "gün ve segment özeti"}
+      ]
+    },
+    {
+      "name": "EXP_BDDK",
+      "steps": [
+        {"from": "DWH.MART_KART_OZET", "to": "EXP_BDDK_KART", "not": "BDDK bildirimi"}
+      ]
+    }
+  ]
+}

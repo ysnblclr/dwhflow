@@ -83,12 +83,17 @@ class Template:
 
 
 def _check_path(kind: str, path: str) -> None:
+    """Yolun sözdizimini okumadan önce denetler (değer yollarındaki ``/@öznitelik`` eki ayrılır)."""
     if kind == "json":
         json_steps(path)
         return
-    probe = ET.Element("_belge")
+    element_path, attribute = _split_attribute(path)
+    if attribute is not None and not re.fullmatch(r"[\w.:-]+", attribute):
+        raise FormatError(f"geçersiz öznitelik adı '{attribute}' ('{path}')")
+    if element_path in (".", ""):
+        return
     try:
-        probe.findall(_xml_path(path))
+        ET.Element("_belge").findall(_xml_path(element_path))
     except (SyntaxError, KeyError, ValueError, TypeError) as exc:
         raise FormatError(f"geçersiz XML yolu '{path}': {exc}") from exc
 
@@ -172,12 +177,17 @@ def _xml_records(root: ET.Element, path: str) -> list[ET.Element]:
     return [element for element in found if element is not wrapper]
 
 
-def _xml_values(record: ET.Element, path: str) -> list[str]:
+def _split_attribute(path: str) -> tuple[str, str | None]:
+    """``Source/@name`` → (``Source``, ``name``); ``@id`` → (``.``, ``id``); ``Source`` → (``Source``, None)."""
     path = path.strip()
-    element_path, attribute = path, None
     last = path.rsplit("/", 1)[-1]
     if last.startswith("@"):
-        element_path, attribute = path[: len(path) - len(last)].rstrip("/") or ".", last[1:].strip()
+        return path[: len(path) - len(last)].rstrip("/") or ".", last[1:].strip()
+    return path, None
+
+
+def _xml_values(record: ET.Element, path: str) -> list[str]:
+    element_path, attribute = _split_attribute(path)
     try:
         elements = [record] if element_path in (".", "") else record.findall(element_path)
     except (SyntaxError, KeyError, ValueError, TypeError) as exc:

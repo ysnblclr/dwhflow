@@ -1,0 +1,40 @@
+{
+  "aciklama": "draw.io: silindir/belge/süreç şekilleri, UserObject, kulvar (düğüm değil), ok üstü etiket şekli, shape=process ad kuralını (EXP_) ezer",
+  "format": "drawio",
+  "datasets": [
+    "ODS_KART_ISLEM",
+    "DWH.D_MUSTERI",
+    "DWH.F_KART_ISLEM",
+    "DWH.MART_KART_OZET",
+    "EXP_BDDK_KART"
+  ],
+  "processes": [
+    "LOAD_F_KART_ISLEM",
+    "LOAD_MART_KART_OZET",
+    "EXP_BDDK"
+  ],
+  "links": [
+    [
+      "ODS_KART_ISLEM",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "DWH.F_KART_ISLEM",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.MART_KART_OZET",
+      "EXP_BDDK_KART"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

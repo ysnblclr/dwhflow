@@ -1,0 +1,48 @@
+{
+  "aciklama": "Confluence HTML dışa aktarımı: başlıklar, düzen tablosu içindeki paragraf, rowspan'lı STTM; betik yok sayılır",
+  "format": "html",
+  "datasets": [
+    "SRC_KART_ISLEM",
+    "KART_ISLEM_YYYYMMDD.dat",
+    "STG_KART_ISLEM",
+    "ODS_KART_ISLEM",
+    "DWH.F_KART_ISLEM",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "EXT_KART",
+    "MFT_KART",
+    "TPT_STG_KART",
+    "SP_ODS_KART",
+    "LOAD_F_KART_ISLEM"
+  ],
+  "links": [
+    [
+      "SRC_KART_ISLEM",
+      "KART_ISLEM_YYYYMMDD.dat"
+    ],
+    [
+      "STG_KART_ISLEM",
+      "ODS_KART_ISLEM"
+    ],
+    [
+      "ODS_KART_ISLEM",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.F_KART_ISLEM"
+    ]
+  ],
+  "precedes": [
+    [
+      "MFT_KART",
+      "TPT_STG_KART"
+    ],
+    [
+      "TPT_STG_KART",
+      "SP_ODS_KART"
+    ]
+  ],
+  "subset": false
+}

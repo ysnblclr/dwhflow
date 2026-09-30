@@ -1,0 +1,29 @@
+{
+  "aciklama": "OpenDocument metin: başlık, paragraf, liste, tablo; dipnot ve izlenen değişiklik (silinmiş) okunmaz",
+  "format": "odt",
+  "datasets": [
+    "SRC_MUSTERI",
+    "STG_MUSTERI",
+    "ODS_MUSTERI",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "LOAD_D_MUSTERI"
+  ],
+  "links": [
+    [
+      "SRC_MUSTERI",
+      "STG_MUSTERI"
+    ],
+    [
+      "STG_MUSTERI",
+      "ODS_MUSTERI"
+    ],
+    [
+      "ODS_MUSTERI",
+      "DWH.D_MUSTERI"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

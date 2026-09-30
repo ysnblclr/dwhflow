@@ -1,0 +1,66 @@
+<mxfile host="app.diagrams.net" modified="2026-09-15T09:00:00.000Z" agent="DWHFlow örnek" version="24.7.0">
+  <diagram id="mart" name="Mart katmanı">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="baslik" value="Kredi kartı — mart katmanı" style="text;html=1;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ods" value="ODS_KART_ISLEM" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="140" height="70" as="geometry" />
+        </mxCell>
+        <UserObject label="DWH.D_MUSTERI" tur="veri" sahip="DWH Ekibi" id="dm">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="40" y="220" width="140" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="kulvar" value="Mart katmanı" style="swimlane;html=1;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="240" y="60" width="520" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="lf" value="LOAD_F_KART_ISLEM" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="kulvar">
+          <mxGeometry x="20" y="40" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="f" value="DWH.F_KART_ISLEM" style="shape=cylinder3;whiteSpace=wrap;html=1;" vertex="1" parent="kulvar">
+          <mxGeometry x="200" y="30" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="m" value="DWH.MART_KART_OZET&lt;br&gt;&lt;i&gt;(günlük)&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;" vertex="1" parent="kulvar">
+          <mxGeometry x="370" y="150" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="exp" value="EXP_BDDK" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="220" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="expf" value="EXP_BDDK_KART" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="340" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="not" value="Not: mart her gece 04:00'te yenilenir." style="text;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ods" target="lf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="dm" target="lf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="kulvar" source="lf" target="f">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="kulvar" source="f" target="m">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4etiket" value="LOAD_MART_KART_OZET" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="e4">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="LOAD_MART_KART_OZET" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="dm" target="m">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="m" target="exp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="exp" target="expf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

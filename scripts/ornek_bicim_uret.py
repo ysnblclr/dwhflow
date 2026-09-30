@@ -445,7 +445,7 @@ def _mime_word(text: str) -> str:
 
 def _b64(data: bytes) -> str:
     text = base64.b64encode(data).decode("ascii")
-    return "\n".join(text[i:i + 76] for i in range(0, len(text), 76))
+    return "\r\n".join(text[i:i + 76] for i in range(0, len(text), 76))
 
 
 def eml_bytes(headers: dict[str, str], body: str, attachments: list[tuple[str, str, bytes]],
@@ -528,7 +528,8 @@ ODT_BODY = (
     "<text:list><text:list-item><text:p>STG_MUSTERI tablosundan ODS_MUSTERI tablosuna<text:s/>yüklenir."
     "</text:p></text:list-item></text:list>"
     '<text:p>Ayrıntı için dipnota bakın.<text:note text:note-class="footnote">'
-    "<text:note-citation>1</text:note-citation><text:note-body><text:p>Eski not: HATALI_NOT tablosundan YANLIS_HEDEF tablosuna yüklenir.</text:p>"
+    "<text:note-citation>1</text:note-citation><text:note-body>"
+    "<text:p>Eski not: HATALI_NOT tablosundan YANLIS_HEDEF tablosuna yüklenir.</text:p>"
     "</text:note-body></text:note></text:p>"
     '<text:h text:outline-level="1">Boyut yüklemesi</text:h>'
     + odt_table("Tablo1", [["Kaynak Tablo", "Hedef Tablo", "Job"], ["ODS_MUSTERI", "DWH.D_MUSTERI", "LOAD_D_MUSTERI"]])
