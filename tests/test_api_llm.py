@@ -63,7 +63,8 @@ def llm():
 def client(tmp_path, llm):
     app = create_app(tmp_path / "veri", engine=FakeEngine(), allowed_hosts={"testserver"}, llm_factory=llm.factory)
     with TestClient(app, client=("127.0.0.1", 50000)) as c:
-        assert c.post("/api/auth/setup", json={"username": "yonetici", "password": PASSWORD}, headers=H).status_code == 200
+        response = c.post("/api/auth/setup", json={"username": "yonetici", "password": PASSWORD}, headers=H)
+        assert response.status_code == 200
         yield c
 
 
