@@ -12,8 +12,10 @@ batch job'a, binary dosyadan ETL'e, DWH tablolarından hedef tablolara kadar.
   yerel bir LLM (ör. Ollama'da Qwen3 8B) yalnız kuralların çözemediği paragraflara
   bakar; önerdiği her akış belgede harfi harfine geçen bir cümleyle kanıtlanmak
   zorundadır, yoksa reddedilir.
+- **Ekip için.** Giriş, roller (izleyici/düzenleyici/yönetici), projeler, elle düzeltme,
+  onay kuyruğu ve kim neyi değiştirdi günlüğü.
 - **Çevrimdışı.** Telemetri yok, CDN yok, motorun güncelleme denetimi kapalı.
-  Sunucu yalnız `127.0.0.1`'e bağlanır.
+  Sunucu varsayılan olarak yalnız `127.0.0.1`'e bağlanır.
 
 Planlar ve gerekçeler: [PLAN_V2.md](PLAN_V2.md) (sıradaki sürüm: ekranlar, elle müdahale,
 evrensel okuma, LLM ara formatı), [ARCHIFY_PLAN.md](ARCHIFY_PLAN.md) (güncel süreç),
@@ -149,26 +151,52 @@ platforma bağlıdır — paketin hedefe göre hazırlanmasının sebebi bu.
 
 ## Kullanım
 
-### Tarayıcı arayüzü
+### Ekip uygulaması
 
 ```bash
 dwhflow serve
 ```
 
-`http://127.0.0.1:8765` adresinde tek sayfalık bir arayüz açılır:
+`http://127.0.0.1:8765` adresinde açılır. **Giriş zorunludur.** İlk açılışta sunucu
+makinesindeki tarayıcıdan yönetici hesabı oluşturulur (ya da komutla:
+`dwhflow kullanici ekle ADINIZ --rol yonetici`). Ekibe açmak için:
 
-1. Dokümanları sürükleyip bırakın (en çok 50 dosya, her biri en çok 64 MB).
-2. İsterseniz başlık, kalite ve A→B yolları (`KAYNAK > HEDEF`, her satıra bir tane)
-   girin; YZ'yi açın.
-3. **Akışa çevir.** İlerleme canlı görünür; bitince galeriyi ve her diyagramı açın.
-4. Önceki dönüştürmeler listede durur; her biri kendi klasöründedir, hiçbir şey
-   üzerine yazılmaz.
+```bash
+dwhflow serve --host 0.0.0.0 --allow-host SUNUCU_ADI
+```
 
-**Ayarlar** penceresinden LLM adresi, model ve API anahtarının *ortam değişkeninin
-adı* girilir ve bağlantı test edilir. Anahtarın kendisi hiçbir zaman diske yazılmaz.
+Trafik şifresizdir; kurum içinde HTTPS sağlayan bir ters vekil (IIS/nginx) arkasında
+çalıştırın. Roller: **izleyici** (okur), **düzenleyici** (doküman yükler, düzeltir, onaylar,
+proje ayarı yapar), **yönetici** (kullanıcılar, genel ayarlar, LLM profilleri, istemler).
+
+Üst menü ve ekranlar:
+
+| Menü | Ne yapılır |
+|---|---|
+| **Proje seçici** | Projeler arasında geçiş; her projenin kendi dokümanları, ayarları, düzeltmeleri ve diyagramları vardır |
+| **Pano** | Sayılar, "model eskidi" uyarısı, sorunlu dokümanlar, sahipsiz düzeltmeler, son değişiklikler |
+| **Dokümanlar** | Sürükle-bırak yükleme (aynı adla yükleme yeni sürüm olur), okuma raporu, okuyucuyu zorlama, sürümler, örnek ekleme |
+| Doküman inceleme | Belge ile çıkarılanlar yan yana; bir bağa tıklayınca kanıt cümlesi vurgulanır; çözülemeyen paragraftan bağ eklenir |
+| **Model › Tablolar / Süreçler** | Filtrelenebilir listeler ve ayrıntı paneli; ad, katman, tür, sistem, hassasiyet düzeltme, birleştirme, bağ ekleme/silme/yön çevirme, süreç atama, silme (önce fark önizlemesi), etki analizi, yol bulma |
+| **Model › STTM** | Kolon eşlemeleri; ekle, sil, CSV indir |
+| **Onay** | Taslak bağlar, LLM önerileri, birleştirme önerileri, insan bakmalı paragraflar, tanınmayan tablolar (sütunları rollere eşle); toplu kabul/ret ve önizleme |
+| **Bulgular** | Doğrulama sonuçları; gerekçeyle yok sayma |
+| **Diyagramlar** | Plan, özel A→B yolları, çevre diyagramları, gizlenen nesneler; üretim, çalıştırma geçmişi, diyagramı uygulama içinde açma |
+| **Karşılaştır** | İki çalıştırma ya da çalıştırma ile güncel model arasındaki fark |
+| **Günlük** | Tüm elle düzeltmeler (geri al/yinele) ve kim neyi ne zaman değiştirdi |
+| **Ara (Ctrl+K)** | Tablo, süreç, doküman araması |
+| **Örnekler** | Senaryo ve biçim örnekleri, boş şablonlar (STTM, job bağımlılık, tasarım dokümanı), biçim rehberi |
+| **Ayarlar** | Proje ve genel ayarlar (okuma kuralları, ad → katman kuralları, sistem sözlüğü, okuyucu/şablonlar, diyagram, yapay zekâ), kullanıcılar, yapay zekâ konsolu, sistem durumu |
+
+**Elle düzeltmeler kaybolmaz.** Her değişiklik bir işlem olarak saklanır ve dokümanlar
+yeniden okunduğunda modele yeniden uygulanır. Hedefi artık bulunamayan düzeltme
+"sahipsiz" olarak panoda ve günlükte listelenir.
+
+**Ayarlar katmanlıdır:** paket varsayılanı < genel (yönetici) < proje. Her değerin yanında
+nereden geldiği görünür; okuma kuralı değişiklikleri kaydetmeden önce önizlenebilir.
 
 Çalışma alanı varsayılan olarak bulunduğunuz klasörde `.dwhflow/` altındadır
-(`--data-dir` ile değiştirilebilir).
+(`--data-dir` ile değiştirilebilir); içerik düz YAML/JSON dosyalarıdır, yedeklenebilir.
 
 ### Komut satırı
 
