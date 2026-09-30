@@ -14,13 +14,16 @@ export async function render(root) {
   const projects = await get('/api/projects');
 
   const create = async () => {
+    let scenarios = [];
+    try { scenarios = (await get('/api/samples')).scenarios || []; } catch { /* örnekler okunamazsa yalnız boş proje */ }
     const values = await formDialog({
       title: 'Yeni proje',
       fields: [
         { name: 'name', label: 'Proje adı', required: true, placeholder: 'ör. Kredi kartı işlemleri' },
         { name: 'description', label: 'Açıklama', type: 'textarea', wide: true },
         { name: 'sample', label: 'Başlangıç', type: 'select', options: [
-          { value: '', label: 'Boş proje' }, { value: 'kart', label: 'Örnek: kredi kartı senaryosu (6 doküman)' }] },
+          { value: '', label: 'Boş proje' },
+          ...scenarios.map((s) => ({ value: s.id, label: `Örnek: ${s.title} (${(s.files || []).length} doküman)` }))] },
       ],
       submitLabel: 'Oluştur',
     });

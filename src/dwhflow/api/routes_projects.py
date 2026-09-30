@@ -68,20 +68,21 @@ def list_projects(request: Request) -> list[dict[str, Any]]:
 def create_project(request: Request, body: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
     user = deps.editor(request)
     ctx = deps.ctx(request)
+    sample = body.get("sample")
+    try:
+        files = samples_mod.scenario_files(str(sample)) if sample else []
+    except LookupError as exc:  # proje oluşturulmadan önce: yarım proje kalmasın
+        raise HTTPException(404, str(exc)) from exc
     try:
         project = ctx.workspace.create_project(str(body.get("name", "")), str(body.get("description", "")),
                                                user=user["username"])
     except StoreError as exc:
         raise HTTPException(400, str(exc)) from exc
     job = None
-    sample = body.get("sample")
-    if sample:
-        try:
-            for path in samples_mod.scenario_files(str(sample)):
-                with path.open("rb") as handle:
-                    project.store_upload(path.name, handle, user=user["username"])
-        except LookupError as exc:
-            raise HTTPException(404, str(exc)) from exc
+    if files:
+        for path in files:
+            with path.open("rb") as handle:
+                project.store_upload(path.name, handle, user=user["username"])
         job = submit_build(request, project, user["username"], use_llm=False, reason="örnek dokümanlar")
     return {**project.meta(), "job": job}
 

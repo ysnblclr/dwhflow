@@ -29,6 +29,7 @@ from . import (
     deps,
     routes_auth,
     routes_diagrams,
+    routes_llm,
     routes_model,
     routes_projects,
     routes_review,
@@ -94,19 +95,17 @@ def create_app(data_dir: str | Path | None = None, *, engine: Any = None,
         response.headers["Referrer-Policy"] = "same-origin"
         if path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
+        elif path.startswith("/assets/"):
+            # Sürüm yükseltmesinden sonra tarayıcı eski JS/CSS'i kullanmasın: her açılışta
+            # yeniden doğrular (değişmediyse 304, gövdesiz).
+            response.headers["Cache-Control"] = "no-cache"
         if not path.startswith("/dosya/"):
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
         return response
 
     for module in (routes_system, routes_auth, routes_projects, routes_model, routes_review,
-                   routes_diagrams, routes_settings):
+                   routes_diagrams, routes_settings, routes_llm):
         app.include_router(module.router)
-    try:
-        from . import routes_llm
-
-        app.include_router(routes_llm.router)
-    except ImportError:  # LLM uçları henüz yoksa uygulama yine çalışsın
-        pass
 
     if STATIC_DIR.is_dir():
         app.mount("/assets", StaticFiles(directory=STATIC_DIR), name="assets")

@@ -147,6 +147,14 @@ class TestSecurity:
     def test_csp_on_index(self, admin):
         assert "default-src 'self'" in admin.get("/").headers["content-security-policy"]
 
+    def test_assets_revalidated_after_upgrade(self, admin):
+        """Regresyon: sürüm yükseltmesinden sonra tarayıcı eski app.css/JS'i kullanıyordu."""
+        first = admin.get("/assets/css/app.css")
+        assert first.status_code == 200 and first.headers["cache-control"] == "no-cache"
+        assert admin.get("/assets/js/main.js").headers["cache-control"] == "no-cache"
+        again = admin.get("/assets/css/app.css", headers={"If-None-Match": first.headers["etag"]})
+        assert again.status_code == 304 and not again.content
+
     @pytest.mark.parametrize("header, expected", [("127.0.0.1:8765", "127.0.0.1"), ("[::1]:80", "[::1]"),
                                                   ("LOCALHOST", "localhost")])
     def test_host_parsing(self, header, expected):
@@ -429,6 +437,18 @@ class TestSystemAndSamples:
                               json={"group": "bicim", "name": catalog["formats"][0]["name"]}, headers=H)
         assert response.status_code == 200
         wait(admin, response.json()["job"]["id"])
+
+    def test_etl_scenario_project_and_unknown_sample(self, admin):
+        before = {p["slug"] for p in admin.get("/api/projects").json()}
+        missing = admin.post("/api/projects", json={"name": "Yarım", "sample": "yok"}, headers=H)
+        assert missing.status_code == 404
+        assert {p["slug"] for p in admin.get("/api/projects").json()} == before  # yarım proje kalmaz
+        body = admin.post("/api/projects", json={"name": "ETL", "sample": "etl"}, headers=H).json()
+        assert wait(admin, body["job"]["id"])["state"] == "done"
+        documents = {d["name"] for d in admin.get(f"/api/projects/{body['slug']}/documents").json()}
+        assert {"kart_datastage.dsx", "kart_controlm.xml", "kart_mart_dag.py"} <= documents
+        processes = {p["name"] for p in admin.get(f"/api/projects/{body['slug']}/processes").json()["items"]}
+        assert {"SEQ_KART_GECE", "PX_STG_KART"} <= processes
 
     def test_users_admin(self, admin):
         assert admin.post("/api/users", json={"username": "ayse", "name": "Ayşe", "role": "izleyici",

@@ -511,6 +511,22 @@ class TestTemplatesAndGuide:
             samples.sample_path("kart", "../ornek_bicimler/README.md")
         with pytest.raises(LookupError):
             samples.sample_path("yok", "x")
+        # Dosya listesiyle tanımlı senaryo yalnız listedeki dosyaları verir.
+        assert samples.sample_path("etl", "kart_controlm.xml").name == "kart_controlm.xml"
+        with pytest.raises(LookupError):
+            samples.sample_path("etl", "kart_controlm.json")
+
+    def test_etl_scenario_reads_all_tools(self):
+        """Ekibin araçları (DataStage, Control-M, Airflow) tek senaryoda birleşik okunur."""
+        result = ingest_files(samples.scenario_files("etl"))
+        readers = {r.file: (r.reader, r.status) for r in result.reports}
+        assert readers["kart_datastage.dsx"] == ("IBM DataStage", "ok")
+        assert readers["kart_controlm.xml"] == ("Control-M XML", "ok")
+        assert readers["kart_mart_dag.py"] == ("Apache Airflow DAG", "ok")
+        names = {n.name for n in result.model.nodes.values()}
+        # Aynı tablo üç araçta da geçer ve tek nesnede birleşir.
+        assert {"DWH.F_KART_ISLEM", "DWH.MART_KART_OZET", "SEQ_KART_GECE", "PX_STG_KART"} <= names
+        assert sum(1 for d in result.model.datasets.values() if d.name == "DWH.F_KART_ISLEM") == 1
 
     @pytest.mark.parametrize("pattern", guide.SENTENCE_PATTERNS, ids=lambda p: p["example"][:30])
     def test_guide_examples_are_read(self, pattern):

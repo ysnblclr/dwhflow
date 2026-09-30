@@ -1,6 +1,7 @@
 """Örnekler ve şablonlar (PLAN_V2 US-0.4, US-0.5).
 
-* Senaryo: kredi kartı akışı, 6 biçimde 6 doküman (``examples/ornek_dokumanlar``).
+* Senaryolar: kredi kartı akışı, 6 biçimde 6 doküman (``examples/ornek_dokumanlar``) ve aynı akışın
+  DataStage + Control-M + Airflow ile kurulmuş hâli (biçim örneklerinden seçilen 5 dosya).
 * Biçim örnekleri: her desteklenen biçimden bir dosya ve beklenen sonucu (``examples/ornek_bicimler``).
 * Boş şablonlar: bellekte üretilir (STTM ve job bağımlılık Excel'i, tasarım dokümanı Word'ü);
   şablonla yazılan doküman LLM'siz, kurallarla eksiksiz okunur.
@@ -19,14 +20,31 @@ from ..ingest.config import DEFAULT
 from ..ingest.registry import resolve
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
-SCENARIOS = {
+FORMATS_DIR = EXAMPLES / "ornek_bicimler"
+EXPECTED = ".beklenen.json"
+#: Senaryo ya bir klasörün tüm dosyaları (``folder``) ya da seçilmiş dosyalardır (``files``).
+SCENARIOS: dict[str, dict[str, Any]] = {
     "kart": {"title": "Kredi kartı işlemleri",
              "description": "Kaynak sistemden dosyaya, staging'den mart'a ve BDDK bildirimine uçtan uca akış. "
                             "Excel STTM, Word tasarım dokümanı, PDF, SQL, AutoSys JIL ve operasyon notu.",
              "folder": EXAMPLES / "ornek_dokumanlar"},
+    "etl": {"title": "Kurum ETL zinciri: DataStage · Control-M · Airflow",
+            "description": "Aynı kredi kartı akışı kurum araçlarıyla: DataStage job'ları (.dsx), Control-M gece "
+                           "zinciri (XML), Airflow mart DAG'ı (.py), Excel STTM ve Word tasarım dokümanı.",
+            "files": [FORMATS_DIR / "kart_datastage.dsx", FORMATS_DIR / "kart_controlm.xml",
+                      FORMATS_DIR / "kart_mart_dag.py", EXAMPLES / "ornek_dokumanlar" / "STTM_Kart_Islemleri.xlsx",
+                      EXAMPLES / "ornek_dokumanlar" / "Kart_Tasarim_Dokumani.docx"]},
 }
-FORMATS_DIR = EXAMPLES / "ornek_bicimler"
-EXPECTED = ".beklenen.json"
+
+
+def _scenario_paths(key: str) -> list[Path]:
+    scenario = SCENARIOS[key]
+    if "files" in scenario:
+        return [path for path in scenario["files"] if path.is_file()]
+    folder: Path = scenario["folder"]
+    if not folder.is_dir():
+        return []
+    return sorted(p for p in folder.iterdir() if p.is_file() and not p.name.endswith(EXPECTED))
 
 
 def _format_label(path: Path) -> tuple[str | None, str]:
@@ -37,12 +55,10 @@ def _format_label(path: Path) -> tuple[str | None, str]:
 def catalog() -> dict[str, Any]:
     scenarios = []
     for key, scenario in SCENARIOS.items():
-        folder: Path = scenario["folder"]
         files = []
-        for path in sorted(folder.iterdir()) if folder.is_dir() else []:
-            if path.is_file():
-                fmt, label = _format_label(path)
-                files.append({"name": path.name, "format": fmt, "label": label, "size": path.stat().st_size})
+        for path in _scenario_paths(key):
+            fmt, label = _format_label(path)
+            files.append({"name": path.name, "format": fmt, "label": label, "size": path.stat().st_size})
         scenarios.append({"id": key, "title": scenario["title"], "description": scenario["description"],
                           "files": files})
     formats = []
@@ -64,10 +80,13 @@ def catalog() -> dict[str, Any]:
 
 
 def sample_path(group: str, name: str) -> Path:
+    if group in SCENARIOS:
+        match = next((path for path in _scenario_paths(group) if path.name == name), None)
+        if match is None:
+            raise LookupError("örnek dosya bulunamadı")
+        return match
     if group == "bicim":
         folder = FORMATS_DIR
-    elif group in SCENARIOS:
-        folder = SCENARIOS[group]["folder"]
     else:
         raise LookupError("örnek grubu bulunamadı")
     path = (folder / name).resolve()
@@ -79,7 +98,7 @@ def sample_path(group: str, name: str) -> Path:
 def scenario_files(scenario: str) -> list[Path]:
     if scenario not in SCENARIOS:
         raise LookupError("senaryo bulunamadı")
-    return sorted(p for p in SCENARIOS[scenario]["folder"].iterdir() if p.is_file())
+    return _scenario_paths(scenario)
 
 
 # --------------------------------------------------------------------------- #
