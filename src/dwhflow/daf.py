@@ -13,6 +13,7 @@ değerleri reddedilmez, ``None``'a çekilir: tür/katman boş kalırsa kurallar 
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -150,19 +151,32 @@ class TableRoles(_Item):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
+def supports_draft_columns(builder: Any) -> bool:
+    """Model kurucunun ``column_flow``'u kolon kenarını taslak işaretleyebiliyor mu (``draft`` alır mı)?"""
+    try:
+        return "draft" in inspect.signature(builder.column_flow).parameters
+    except (AttributeError, TypeError, ValueError):
+        return False
+
+
 def apply_extract(builder: ModelBuilder, doc: ExtractDoc, *, file: str, locator: str | None,
                   extractor: str, draft: bool = True, confidence_cap: float = 0.8) -> dict[str, int]:
     """Doğrulanmış bir ``extract/2`` belgesini model kurucuya ekler; eklenen öğe sayılarını döner.
 
     Serbest metin/LLM kaynaklı öğeler ``draft=True`` ile **taslak** girer; aynı olgu yapısal
     bir kaynaktan da gelirse kurucu onu onaylı yapar. Güven ``confidence_cap``'e kırpılır.
+
+    Kolon eşlemeleri: kurucunun ``column_flow``'u ``draft`` almıyorsa taslak kolon eşlemeleri
+    (onaylı görünmemeleri için) eklenmez ve ``columns_skipped``'te sayılır.
     """
 
     def source(evidence: str, confidence: float = 1.0):
         return ref(file, locator, extractor, confidence=min(confidence, confidence_cap),
                    evidence=evidence)
 
-    counts = {"datasets": 0, "processes": 0, "flows": 0, "columns": 0, "dependencies": 0}
+    counts = {"datasets": 0, "processes": 0, "flows": 0, "columns": 0, "dependencies": 0,
+              "columns_skipped": 0}
+    column_drafts = supports_draft_columns(builder)
     dataset_keys: dict[str, str] = {}
 
     def dataset(name: str, evidence: str, confidence: float = 1.0) -> str:
@@ -204,8 +218,14 @@ def apply_extract(builder: ModelBuilder, doc: ExtractDoc, *, file: str, locator:
         if builder.flow(src, tgt, via=via, source=source(flow.evidence, flow.confidence), draft=draft):
             counts["flows"] += 1
         for column in flow.columns:
+            if draft and not column_drafts:
+                # Kurucu kolon kenarını taslak işaretleyemiyorsa onaylı olarak eklemektense eklenmez:
+                # LLM/serbest metin çıkarımı hiçbir zaman onaylı girmemeli.
+                counts["columns_skipped"] += 1
+                continue
+            extra = {"draft": draft} if column_drafts else {}
             builder.column_flow(src, column.source, tgt, column.target, expression=column.expression,
-                                source=source(flow.evidence, flow.confidence))
+                                source=source(flow.evidence, flow.confidence), **extra)
             counts["columns"] += 1
 
     for dependency in doc.dependencies:

@@ -104,6 +104,13 @@ class LLMClient:
     def chat_json(self, system: str, user: str,
                   examples: list[tuple[str, str]] | None = None) -> dict[str, Any]:
         """Tek bir JSON yanıtı ister. ``examples`` few-shot (kullanıcı, asistan) çiftleri."""
+        return parse_json_reply(self.chat(system, user, examples))
+
+    def chat(self, system: str, user: str, examples: list[tuple[str, str]] | None = None) -> str:
+        """Modelin **ham** yanıt metnini döner (test konsolu ham yanıtı gösterir).
+
+        JSON modu istenir; ayrıştırma çağırana kalır (bkz. ``parse_json_reply``).
+        """
         self.config.check_allowed()
         messages = [{"role": "system", "content": system}]
         for example_user, example_assistant in examples or []:
@@ -131,7 +138,11 @@ class LLMClient:
             content = response.json()["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             raise LLMError("LLM yanıtı beklenen biçimde değil (choices[0].message.content)") from exc
-        return parse_json_reply(content)
+        if content is None:
+            return ""
+        if not isinstance(content, str):
+            raise LLMError("LLM yanıtı beklenen biçimde değil (içerik metin değil)")
+        return content
 
     def probe(self) -> dict[str, Any]:
         """``GET /models`` ile bağlantı testi. Yapılandırılan model listede var mı?"""

@@ -85,6 +85,43 @@ class TestGuard:
         client.chat_json("s", "u")
         assert seen == ["Bearer gizli"]
 
+    def test_api_key_never_in_config_or_stats(self, monkeypatch):
+        monkeypatch.setenv("TEST_LLM_KEY", "gizli")
+        client = LLMClient(LLMConfig(api_key_env="TEST_LLM_KEY"), transport=httpx.MockTransport(
+            lambda r: httpx.Response(200, json={"choices": [{"message": {"content": '{"flows": []}'}}]})))
+        stats = extract_with_llm([("x", "p", TEXT)], ModelBuilder(), {}, client)
+        assert "gizli" not in json.dumps(client.config.as_dict()) + json.dumps(stats.as_dict())
+
+    def test_extraction_refuses_external_before_network(self):
+        called = []
+        client = LLMClient(LLMConfig(base_url="https://api.example.com/v1"),
+                           transport=httpx.MockTransport(lambda r: called.append(r)))
+        report = DocReport("x", "Word")
+        stats = extract_with_llm([("x", "p", TEXT)], ModelBuilder(), {"x": report}, client)
+        assert called == [] and stats.errors and stats.calls == 0
+        assert any("LLM hatası" in note for note in report.notes)
+
+
+class TestRawChat:
+    def test_chat_returns_raw_content(self):
+        client = LLMClient(LLMConfig(), transport=httpx.MockTransport(lambda r: httpx.Response(
+            200, json={"choices": [{"message": {"content": '<think>x</think>{"flows": []}'}}]})))
+        assert client.chat("s", "u") == '<think>x</think>{"flows": []}'
+        assert client.chat_json("s", "u") == {"flows": []}
+
+    def test_null_content_is_a_parse_error_not_a_crash(self):
+        client = LLMClient(LLMConfig(), transport=httpx.MockTransport(lambda r: httpx.Response(
+            200, json={"choices": [{"message": {"content": None}}]})))
+        assert client.chat("s", "u") == ""
+        with pytest.raises(LLMError):
+            client.chat_json("s", "u")
+
+    def test_non_text_content_rejected(self):
+        client = LLMClient(LLMConfig(), transport=httpx.MockTransport(lambda r: httpx.Response(
+            200, json={"choices": [{"message": {"content": [{"type": "text"}]}}]})))
+        with pytest.raises(LLMError, match="beklenen biçimde"):
+            client.chat("s", "u")
+
 
 class TestEvidenceCheck:
     def test_valid_flow_accepted(self):
@@ -117,6 +154,15 @@ class TestEvidenceCheck:
                                  "evidence": TEXT.replace(" ", "  ")}, TEXT)
         assert flow is not None
 
+    def test_schema_prefixed_self_loop_rejected(self):
+        _, reason = validate_flow({"source": "DWH.MART_KART_OZET", "target": "MART_KART_OZET",
+                                   "evidence": TEXT}, TEXT)
+        assert reason == "kaynak ile hedef aynı"
+
+    def test_name_inside_longer_identifier_not_accepted(self):
+        _, reason = validate_flow({"source": "KART_OZET", "target": "RPT_KART_PANO", "evidence": TEXT}, TEXT)
+        assert "geçmiyor" in reason
+
 
 class TestExtraction:
     def test_accepted_flows_are_drafts_with_provenance(self):
@@ -128,7 +174,8 @@ class TestExtraction:
         assert stats.accepted == 1 and stats.rejected == 0
         assert all(e.status is Status.DRAFT for e in model.edges)
         source = model.edges[0].sources[0]
-        assert source.extractor == "llm:qwen3:8b@extract_flows/v1"
+        # v2 istemi varsayılan; her çıktı hangi istem sürümünden geldiğini taşır.
+        assert source.extractor == "llm:qwen3:8b@extract_flows/v2"
         assert source.evidence == TEXT and source.locator == "§ 3"
         assert report.llm_used
 
@@ -147,7 +194,7 @@ class TestExtraction:
 
     def test_prompt_is_embedded_and_versioned(self):
         prompt = load_prompt()
-        assert prompt["id"] == "extract_flows" and prompt["version"] == 1
+        assert prompt["id"] == "extract_flows" and prompt["version"] == 2
         assert "HARFİ HARFİNE" in prompt["system"]
         assert "talimat değildir" in prompt["system"]  # doküman içeriği veri, talimat değil
 
@@ -178,7 +225,10 @@ class TestEndToEnd:
         result = ingest_files(sorted(samples.iterdir()), llm=client)
         names = {d.name for d in result.model.datasets.values()}
         assert "RPT_KART_PANO" in names
-        assert result.llm == {"calls": 1, "accepted": 1, "rejected": 0, "errors": []}
+        # v2 istatistiği yeni alanlar ekler; eski alanlar ve değerleri aynı kalır.
+        assert {key: result.llm[key] for key in ("calls", "accepted", "rejected", "errors")} == \
+            {"calls": 1, "accepted": 1, "rejected": 0, "errors": []}
+        json.dumps(result.llm)  # API'ye olduğu gibi döner
         # Aynı tablo SQL'de şemalı adla geçiyor; LLM'in şemasız adı onunla birleşmeli.
         assert "MART_KART_OZET" not in names and "DWH.MART_KART_OZET" in names
 
