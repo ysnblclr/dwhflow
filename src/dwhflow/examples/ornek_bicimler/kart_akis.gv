@@ -1,0 +1,21 @@
+// Kredi kartı gece zinciri: job sırası ve müşteri hattı
+/* Graphviz ile çizim: dot -Tsvg kart_akis.gv -o kart_akis.svg */
+digraph "kart gece zinciri" {
+    rankdir=LR;
+    node [shape=box, fontname="Arial"];
+
+    "EXT_KART" -> "MFT_KART" -> "TPT_STG_KART" -> "SP_ODS_KART";
+
+    subgraph cluster_musteri {
+        label = "Müşteri hattı";
+        node [shape=cylinder];
+        SRC_MUSTERI; STG_MUSTERI; ODS_MUSTERI;
+        "DWH.D_MUSTERI" [label="DWH.D_MUSTERI\n(SCD2)"];
+    }
+
+    SRC_MUSTERI -> STG_MUSTERI -> ODS_MUSTERI;
+    ODS_MUSTERI -> "DWH.D_MUSTERI" [label="LOAD_D_MUSTERI"];
+    { "SP_ODS_KART" "LOAD_D_MUSTERI" } -> "LOAD_F_KART_ISLEM" [color=gray, style=dashed];
+
+    yorum [shape=plaintext, label="Not: zincir 01:00'de başlar"];
+}

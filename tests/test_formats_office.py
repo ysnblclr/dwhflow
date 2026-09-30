@@ -856,7 +856,7 @@ class TestDot:
         assert resolve(path, DEFAULT)[0].key == "dot"
 
     def test_preview_locators(self):
-        path = FORMATS / "kart_akis.dot"
+        path = FORMATS / "kart_akis.gv"
         assert_locators_in_preview(path, ingest_files([path]))
 
 

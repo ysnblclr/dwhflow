@@ -306,4 +306,4 @@ def preview_dot(path: Path) -> list[Block]:
 
 register(FormatSpec("dot", "Graphviz DOT", (".dot", ".gv"), read_dot, preview_dot, sniff=looks_like_dot,
                     group="Diyagram", description="digraph: düğümler → tablo/job, kenarlar → akış, etiket → job",
-                    sample="ornek_bicimler/kart_akis.dot"))
+                    sample="ornek_bicimler/kart_akis.gv"))
