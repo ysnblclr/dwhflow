@@ -889,7 +889,7 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
     const name = v.ad.trim();
     if (!/^[\p{L}\p{N}_.-]{1,40}$/u.test(name)) return 'Profil adı 1–40 karakter olmalı; harf, rakam, _ . - kullanılabilir';
     if (name !== oldName && Object.prototype.hasOwnProperty.call(draft.yz.profiller || {}, name)) return 'Bu adla bir profil zaten var';
-    if (!/^https?:\/\/\S+$/.test(v.base_url.trim())) return 'Sunucu adresi http:// ya da https:// ile başlamalı';
+    if (!/^https?:\/\/\S+$/.test(v.base_url.trim())) return 'Sunucu adresi http ya da https şemasıyla başlamalı (ör. http://localhost:11434/v1)';
     if (!v.model.trim()) return 'Model adı gerekli';
     const env = v.api_key_env.trim();
     if (env && !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(env)) {
@@ -913,7 +913,7 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
       fields: [
         { name: 'ad', label: 'Profil adı', value: name || '', required: true, placeholder: 'ör. kurum-ici' },
         { name: 'base_url', label: 'Sunucu adresi', value: current.base_url, required: true, placeholder: 'http://localhost:11434/v1',
-          hint: 'OpenAI uyumlu uç; http:// ya da https:// ile başlar.' },
+          hint: 'OpenAI uyumlu uç; http ya da https şemasıyla, ör. http://localhost:11434/v1' },
         { name: 'model', label: 'Model', value: current.model, required: true, placeholder: 'ör. qwen3:8b' },
         { name: 'api_key_env', label: 'API anahtarının ortam değişkeni ADI', value: current.api_key_env || '', placeholder: 'DWHFLOW_AI_KEY',
           hint: 'Anahtarın KENDİSİNİ değil, sunucuda anahtarı tutan ortam değişkeninin ADINI yazın. Anahtar gerekmiyorsa boş bırakın.' },
@@ -981,7 +981,7 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
     return [
       sectionHead('Yapay zekâ (LLM)'),
       h('p', { class: 'set-intro', text: 'LLM yalnız kuralların çözemediği paragraflar ve tanınmayan tablolar için kullanılır; '
-        + 'bulguları taslak olarak işaretlenir ve kanıtla birlikte gösterilir.' }),
+        + 'yanıtı şema ve kanıt denetiminden geçer.' }),
       h('div', { class: 'stack', style: { gap: '8px' } },
         checkField('yz.etkin', 'Yapay zekâ (LLM) desteğini etkinleştir', 'Kapalıyken doküman metni hiçbir modele gönderilmez; okuma yalnız kurallarla yapılır.'),
         checkField('yz.maske', 'Kişisel verileri maskele', 'Metin LLM’e gönderilmeden önce kişisel veriler maskelenir. Dış adresli profillerde maskeleme her zaman uygulanır.'),
@@ -1162,7 +1162,7 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
     drawFoot();
   }
 
-  root.append(
+  append(root, [
     h('div', { class: 'set-legend' }, 'Değerin geldiği katman:', originBadge('varsayilan'), 'paket varsayılanı ·', originBadge('genel'),
       'genel ayar (tüm projeler)', isProject ? [' ·', originBadge('proje'), 'yalnız bu proje'] : null),
     editable ? null : h('div', { class: 'banner info' }, h('span', { class: 'grow', text: isProject
@@ -1170,7 +1170,7 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
       : 'Genel ayarları yalnız yöneticiler değiştirebilir.' })),
     bar,
     body,
-  );
+  ]);
   computeDirty();
   drawTabs();
   drawBody();

@@ -261,8 +261,8 @@ iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(
 .set-check label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .set-check .hint { flex-basis: 100%; color: var(--muted); font-size: 12px; padding-left: 23px; }
 .set-reset { font-size: 13px; padding: 0 5px; }
-.set-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px;
-  border-top: 1px solid var(--line-2); }
+.set-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding: 12px 0;
+  border-top: 1px solid var(--line-2); position: sticky; bottom: 0; background: var(--card); z-index: 2; }
 .set-foot:empty { display: none; }
 .set-table select, .set-table input[type=text] { min-width: 110px; }
 .set-table td { vertical-align: middle; }
@@ -284,6 +284,7 @@ select.dia-quality { width: auto; }
 .dia-plan li { flex-wrap: wrap; }
 .dia-box { display: grid; gap: 8px; margin-bottom: 14px; }
 .dia-box h3 { margin: 4px 0 0; }
+.dia-box p { margin: 0; }
 .dia-add { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .dia-add input[type=text] { flex: 1 1 160px; width: auto; }
 .dia-add select { width: auto; }
