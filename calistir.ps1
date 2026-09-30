@@ -9,17 +9,19 @@
   Seçenekler:
     -Ekip            Sunucuyu ağa açar; bu bilgisayarın adı, tam adı ve IPv4 adresleri izinli olur
     -Ad ad1,ad2      Ekip modunda ek izinli adlar (ör. DNS takma adı: dwhflow.kurum.local)
+    -Giris           Kullanıcı adı/parola iste (şimdilik varsayılan: girişsiz, herkes yönetici)
     -Port 8765       Port
     -Veri KLASOR     Projeler, kullanıcılar ve ayarların klasörü (varsayılan: depo\.dwhflow)
     -TarayiciAcma    Tarayıcıyı otomatik açma
     -KomutuGoster    Çalıştırmadan yalnız komutu yaz
 
-  Durdurmak için bu pencerede Ctrl+C. İlk açılışta yönetici hesabı bu bilgisayardaki
-  tarayıcıdan oluşturulur.
+  Durdurmak için bu pencerede Ctrl+C. Giriş açıksa (-Giris) ilk açılışta yönetici hesabı
+  bu bilgisayardaki tarayıcıdan oluşturulur.
 #>
 param(
     [switch]$Ekip,
     [string[]]$Ad = @(),
+    [switch]$Giris,
     [int]$Port = 8765,
     [string]$Veri = '',
     [switch]$TarayiciAcma,
@@ -28,14 +30,19 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
-$dwhflow = Join-Path $PSScriptRoot '.venv\Scripts\dwhflow.exe'
-if (-not (Test-Path -LiteralPath $dwhflow)) {
+# Kod her zaman depodaki src/ klasöründen çalışır (git pull sonrası eski kopya çalışmasın);
+# .venv yalnız bağımlılıkları sağlar. (Düzenlenebilir kurulum, Türkçe karakterli klasörlerde
+# Python 3.11'in .pth dosyalarını yerel kod sayfasıyla okuması yüzünden çalışmıyor.)
+$python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+$source = Join-Path $PSScriptRoot 'src'
+if (-not (Test-Path -LiteralPath $python)) {
     Write-Host "DWHFlow kurulu değil. Önce kurun:  kur.bat  (ya da powershell -ExecutionPolicy Bypass -File kur.ps1)" -ForegroundColor Red
     exit 1
 }
 if (-not $Veri) { $Veri = Join-Path $PSScriptRoot '.dwhflow' }
 
-$serveArgs = @('serve', '--port', "$Port", '--data-dir', $Veri)
+$serveArgs = @('-m', 'dwhflow.cli', 'serve', '--port', "$Port", '--data-dir', $Veri)
+if ($Giris) { $serveArgs += '--giris' } else { $serveArgs += '--girissiz' }
 $addresses = @("http://127.0.0.1:$Port")
 
 if ($Ekip) {
@@ -60,7 +67,8 @@ if ($Ekip) {
 }
 
 if ($KomutuGoster) {
-    Write-Host "$dwhflow $($serveArgs -join ' ')"
+    Write-Host "PYTHONPATH=$source"
+    Write-Host "$python $($serveArgs -join ' ')"
     exit 0
 }
 
@@ -76,6 +84,8 @@ if ($busy) {
 
 Write-Host "DWHFlow başlatılıyor" -ForegroundColor Cyan
 Write-Host "  veri klasörü: $Veri"
+if ($Giris) { Write-Host "  giriş: açık (kullanıcı adı/parola)" }
+else { Write-Host "  giriş: KAPALI (herkes yönetici; açmak için -Giris)" -ForegroundColor Yellow }
 Write-Host "  adresler:"
 foreach ($address in $addresses) { Write-Host "    $address" }
 
@@ -109,5 +119,6 @@ if (-not $TarayiciAcma) {
     }
 }
 
-& $dwhflow @serveArgs
+$env:PYTHONPATH = $source
+& $python @serveArgs
 exit $LASTEXITCODE

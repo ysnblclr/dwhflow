@@ -490,3 +490,60 @@ def test_upload_io_uses_streams(tmp_path):
 
     project.store_upload("a.txt", Stream(b"x" * 10), user="u")
     assert all(size > 0 for size in reads)
+
+
+# --------------------------------------------------------------------------- #
+# Girişsiz çalışma (geçici: serve --girissiz)
+# --------------------------------------------------------------------------- #
+
+
+class TestWithoutLogin:
+    @pytest.fixture
+    def open_app(self, tmp_path):
+        return create_app(tmp_path / "acik", engine=FakeEngine(), allowed_hosts={"testserver"}, auth=False)
+
+    def test_everyone_is_admin_without_login(self, open_app):
+        with remote(open_app) as client:  # başka makineden, çerezsiz
+            state = client.get("/api/auth/state").json()
+            assert state["auth"] is False and not state["setup_required"]
+            assert state["user"]["username"] == "ekip" and state["user"]["role"] == "yonetici"
+            body = client.post("/api/projects", json={"name": "Açık", "sample": "kart"}, headers=H).json()
+            assert wait(client, body["job"]["id"])["state"] == "done"
+            assert client.get("/api/users").status_code == 200
+            assert {e["kim"] for e in client.get(f"/api/projects/{body['slug']}/audit").json()} == {"ekip"}
+
+    def test_host_and_csrf_guards_still_apply(self, open_app):
+        with remote(open_app) as client:
+            assert client.post("/api/projects", json={"name": "x"}).status_code == 403
+            assert client.get("/api/health", headers={"Host": "saldirgan.example"}).status_code == 421
+            for path in ("/api/auth/login", "/api/auth/setup", "/api/auth/password"):
+                assert client.post(path, json={}, headers=H).status_code == 409
+
+    def test_users_kept_for_later(self, open_app, tmp_path):
+        """Girişsizken eklenen hesaplar giriş açılınca çalışır."""
+        with remote(open_app) as client:
+            response = client.post("/api/users", json={"username": "ayse", "role": "yonetici",
+                                                       "password": PASSWORD}, headers=H)
+            assert response.status_code == 200
+        closed = create_app(tmp_path / "acik", engine=FakeEngine(), allowed_hosts={"testserver"})
+        with remote(closed) as client:
+            assert client.get("/api/projects").status_code == 401
+            assert client.post("/api/auth/login", json={"username": "ayse", "password": PASSWORD},
+                               headers=H).status_code == 200
+            assert client.get("/api/projects").status_code == 200
+
+
+def test_serve_defaults_to_no_login(monkeypatch, tmp_path):
+    """`dwhflow serve` şimdilik girişsiz açılır; --giris girişi açar."""
+    import uvicorn
+    from typer.testing import CliRunner
+
+    from dwhflow import cli
+
+    started = []
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kwargs: started.append(app))
+    runner = CliRunner()
+    assert runner.invoke(cli.app, ["serve", "--data-dir", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(cli.app, ["serve", "--data-dir", str(tmp_path), "--giris"]).exit_code == 0
+    assert [app.state.ctx.auth for app in started] == [cli.GIRIS_VARSAYILAN, True]
+    assert cli.GIRIS_VARSAYILAN is False

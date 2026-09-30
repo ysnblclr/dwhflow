@@ -30,13 +30,24 @@ def _set_cookie(request: Request, response: Response, token: str) -> None:
 @router.get("/api/auth/state")
 def state(request: Request) -> dict[str, Any]:
     ctx = deps.ctx(request)
-    return {"setup_required": ctx.users.empty(), "setup_allowed": ctx.users.empty() and _loopback(request),
+    if not ctx.auth:
+        return {"auth": False, "setup_required": False, "setup_allowed": False,
+                "user": getattr(request.state, "user", None), "roles": ROLE_LABELS}
+    return {"auth": True, "setup_required": ctx.users.empty(),
+            "setup_allowed": ctx.users.empty() and _loopback(request),
             "user": getattr(request.state, "user", None), "roles": ROLE_LABELS}
+
+
+def _no_login(request: Request) -> None:
+    if not deps.ctx(request).auth:
+        raise HTTPException(409, "giriş şu an kapalı (sunucu --girissiz çalışıyor); "
+                                 "kullanıcılar Ayarlar › Kullanıcılar'dan yönetilir")
 
 
 @router.post("/api/auth/setup")
 def setup(request: Request, response: Response, body: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
     """İlk yönetici. Yalnız hiç kullanıcı yokken ve sunucunun kendisinden (127.0.0.1) yapılabilir."""
+    _no_login(request)
     ctx = deps.ctx(request)
     if not ctx.users.empty():
         raise HTTPException(409, "kurulum zaten yapılmış")
@@ -54,6 +65,7 @@ def setup(request: Request, response: Response, body: Annotated[dict[str, Any], 
 
 @router.post("/api/auth/login")
 def login(request: Request, response: Response, body: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
+    _no_login(request)
     ctx = deps.ctx(request)
     username = str(body.get("username", "")).strip().lower()
     address = request.client.host if request.client else "?"
@@ -81,6 +93,7 @@ def logout(request: Request, response: Response) -> dict[str, Any]:
 
 @router.post("/api/auth/password")
 def change_password(request: Request, body: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
+    _no_login(request)
     ctx = deps.ctx(request)
     current = deps.user(request)
     if ctx.users.authenticate(current["username"], str(body.get("current", ""))) is None:

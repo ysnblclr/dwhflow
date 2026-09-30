@@ -131,6 +131,11 @@ export async function render(root) {
     crumbs: [{ label: 'Projeler', href: '#/projeler' }, { label: 'Kullanıcılar' }],
     actions: [button('+ Yeni kullanıcı', add, { kind: 'primary' })],
   }));
+  if (!store.auth) {
+    root.append(h('div', { class: 'banner warn' },
+      'Giriş şu an kapalı: sunucu girişsiz çalışıyor ve herkes yönetici yetkisinde. Buradaki hesaplar '
+      + 'giriş açılınca geçerli olur (sunucu: dwhflow serve --giris ya da calistir.bat -Giris).'));
+  }
 
   table = dataTable({
     rows: users,

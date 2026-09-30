@@ -571,6 +571,11 @@ def convert(
         raise typer.Exit(code=1)
 
 
+#: GEÇİCİ: ekip girişi şimdilik kapalı. Girişi varsayılan yapmak için True yapın;
+#: tek seferlik açmak için ``serve --giris`` (calistir.bat -Giris).
+GIRIS_VARSAYILAN = False
+
+
 @app.command()
 def serve(
     host: Annotated[str, typer.Option(help="Dinlenecek adres")] = "127.0.0.1",
@@ -579,6 +584,9 @@ def serve(
         help="Dönüştürmelerin ve ayarların tutulacağı dizin (varsayılan ./.dwhflow)")] = None,
     allow_host: Annotated[list[str] | None, typer.Option(
         help="Yerel dışında kabul edilecek Host adı (ağdan erişim için sunucu adı)")] = None,
+    giris: Annotated[bool, typer.Option(
+        "--giris/--girissiz",
+        help="Kullanıcı adı/parola iste. Girişsizken herkes yönetici yetkisiyle çalışır.")] = GIRIS_VARSAYILAN,
 ) -> None:
     """Ekip arayüzünü başlatır: projeler, dokümanlar, model, düzeltmeler, diyagramlar.
 
@@ -601,7 +609,11 @@ def serve(
     from .project import Workspace
 
     users = UserStore(Workspace(workspace_dir).users_file)
-    if users.empty():
+    if not giris:
+        typer.secho("  Giriş KAPALI: kullanıcı adı/parola sorulmaz; bu adrese erişen herkes yönetici\n"
+                    "  yetkisiyle çalışır (günlükte \"ekip\"). Açmak için:  dwhflow serve --giris",
+                    fg=typer.colors.YELLOW)
+    elif users.empty():
         typer.secho("  İlk kurulum: henüz kullanıcı yok. Yöneticiyi bu makinedeki tarayıcıdan oluşturun\n"
                     "  ya da:  dwhflow kullanici ekle ADI --rol yonetici", fg=typer.colors.YELLOW)
     if host not in ("127.0.0.1", "localhost", "::1"):
@@ -614,7 +626,7 @@ def serve(
     typer.secho(f"\n  DWHFlow  →  http://{shown}:{port}", fg=typer.colors.CYAN, bold=True)
     typer.echo(f"  veri:    {workspace_dir}")
     typer.echo("  API dokümanı: /api/docs\n")
-    uvicorn.run(create_app(workspace_dir, allowed_hosts=hosts), host=host, port=port,
+    uvicorn.run(create_app(workspace_dir, allowed_hosts=hosts, auth=giris), host=host, port=port,
                 log_level="warning")
 
 

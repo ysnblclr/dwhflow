@@ -8,6 +8,9 @@ Güvenlik:
   sayfası bu başlığı ancak CORS ön kontrolüyle gönderebilir; sunucu CORS izni vermez (CSRF).
 * ``/api`` (sağlık, giriş ve ilk kurulum dışında) ve ``/dosya`` oturum ister. Oturum çerezi
   HttpOnly ve SameSite=Strict'tir; roller uç noktalarda denetlenir.
+* ``auth=False`` (``serve --girissiz``) girişi atlar: her istek yönetici yetkili ``ekip``
+  kimliğiyle çalışır. Host ve CSRF denetimleri yine uygulanır. Kullanıcılar ve oturum kodu
+  yerinde durur; giriş yeniden açılınca olduğu gibi çalışır.
 * Arayüz sayfası sıkı bir içerik güvenliği politikasıyla (CSP) sunulur; dış kaynak yüklenmez.
 """
 
@@ -58,13 +61,15 @@ def _host_name(header: str) -> str:
 
 def create_app(data_dir: str | Path | None = None, *, engine: Any = None,
                allowed_hosts: set[str] | None = None, llm_factory: Any = None,
-               workers: int = 2) -> FastAPI:
-    """``engine``: Archify motoru (verilmezse sabitlenmiş motor). ``llm_factory``: testlerde sahte LLM."""
+               workers: int = 2, auth: bool = True) -> FastAPI:
+    """``engine``: Archify motoru (verilmezse sabitlenmiş motor). ``llm_factory``: testlerde sahte LLM.
+    ``auth``: False ise giriş istenmez (geçici ekip kullanımı)."""
     workspace = Workspace(data_dir or Path.cwd() / ".dwhflow")
     context = deps.AppContext(
         workspace=workspace, engine=ProjectEngine(llm_factory=llm_factory),
         users=UserStore(workspace.users_file), sessions=Sessions(), throttle=LoginThrottle(),
         jobs=JobRunner(workers=workers), renderer=engine if engine is not None else Engine(),
+        auth=auth,
     )
     hosts = LOCAL_HOSTS | {h.lower() for h in (allowed_hosts or set())}
 
@@ -84,9 +89,12 @@ def create_app(data_dir: str | Path | None = None, *, engine: Any = None,
         if request.method in MUTATING and request.headers.get(CSRF_HEADER) != "1":
             return JSONResponse({"detail": f"Eksik güvenlik başlığı: {CSRF_HEADER}"}, status_code=403)
         path = request.url.path
-        session = context.sessions.get(request.cookies.get(deps.COOKIE))
-        account = context.users.get(session.username) if session else None
-        request.state.user = account if account and account.get("active") else None
+        if context.auth:
+            session = context.sessions.get(request.cookies.get(deps.COOKIE))
+            account = context.users.get(session.username) if session else None
+            request.state.user = account if account and account.get("active") else None
+        else:
+            request.state.user = dict(deps.GUEST)
         protected = (path.startswith("/api/") and path not in PUBLIC_API) or path.startswith("/dosya/")
         if protected and request.state.user is None:
             return JSONResponse({"detail": "oturum açılmamış"}, status_code=401)

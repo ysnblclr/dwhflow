@@ -5,20 +5,22 @@
 #     bash calistir.sh --ekip          # ağdaki bilgisayarlar da bağlanır
 #
 # Seçenekler: --ekip, --ad AD (ekip modunda ek izinli ad, tekrarlanabilir), --port 8765,
-# --veri KLASOR (varsayılan: depo/.dwhflow), --tarayici-acma, --komutu-goster.
-# Durdurmak için Ctrl+C. İlk açılışta yönetici hesabı bu bilgisayardaki tarayıcıdan oluşturulur.
+# --veri KLASOR (varsayılan: depo/.dwhflow), --giris (kullanıcı adı/parola iste; şimdilik
+# varsayılan girişsiz, herkes yönetici), --tarayici-acma, --komutu-goster. Durdurmak için Ctrl+C.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 port=8765
 veri="$PWD/.dwhflow"
 ekip=0
+giris=0
 ac=1
 goster=0
 extra=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --ekip) ekip=1 ;;
+    --giris) giris=1 ;;
     --ad) extra+=("$2"); shift ;;
     --port) port="$2"; shift ;;
     --veri) veri="$2"; shift ;;
@@ -30,12 +32,15 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-if [ ! -x .venv/bin/dwhflow ]; then
+# Kod her zaman depodaki src/ klasöründen çalışır (git pull sonrası eski kopya çalışmasın);
+# .venv yalnız bağımlılıkları sağlar.
+if [ ! -x .venv/bin/python ]; then
   echo "DWHFlow kurulu değil. Önce kurun:  bash kur.sh"
   exit 1
 fi
 
-args=(serve --port "$port" --data-dir "$veri")
+args=(-m dwhflow.cli serve --port "$port" --data-dir "$veri")
+if [ "$giris" = 1 ]; then args+=(--giris); else args+=(--girissiz); fi
 addresses=("http://127.0.0.1:$port")
 if [ "$ekip" = 1 ]; then
   names=("$(hostname)")
@@ -61,7 +66,7 @@ if [ "$ekip" = 1 ]; then
 fi
 
 if [ "$goster" = 1 ]; then
-  echo ".venv/bin/dwhflow ${args[*]}"
+  echo "PYTHONPATH=$PWD/src .venv/bin/python ${args[*]}"
   exit 0
 fi
 
@@ -72,6 +77,8 @@ fi
 
 echo "DWHFlow başlatılıyor"
 echo "  veri klasörü: $veri"
+if [ "$giris" = 1 ]; then echo "  giriş: açık (kullanıcı adı/parola)"
+else echo "  giriş: KAPALI (herkes yönetici; açmak için --giris)"; fi
 echo "  adresler:"
 for address in "${addresses[@]}"; do echo "    $address"; done
 if [ "$ekip" = 1 ]; then
@@ -95,4 +102,5 @@ if [ "$ac" = 1 ] && command -v curl >/dev/null 2>&1; then
   ) &
 fi
 
-exec .venv/bin/dwhflow "${args[@]}"
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+exec .venv/bin/python "${args[@]}"

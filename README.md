@@ -14,7 +14,8 @@ batch job'a, binary dosyadan ETL'e, DWH tablolarından hedef tablolara kadar.
   bakar; önerdiği her akış belgede harfi harfine geçen bir cümleyle kanıtlanmak
   zorundadır, yoksa reddedilir.
 - **Ekip için.** Giriş, roller (izleyici/düzenleyici/yönetici), projeler, elle düzeltme,
-  onay kuyruğu ve kim neyi değiştirdi günlüğü.
+  onay kuyruğu ve kim neyi değiştirdi günlüğü. **Giriş şimdilik kapalıdır**
+  (bkz. [Ekip uygulaması](#ekip-uygulaması)).
 - **Çevrimdışı.** Telemetri yok, CDN yok, motorun güncelleme denetimi kapalı.
   Sunucu varsayılan olarak yalnız `127.0.0.1`'e bağlanır.
 
@@ -104,8 +105,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\kur.ps1
 | `calistir.bat` (`calistir.ps1`) | Sunucuyu başlatır ve tarayıcıyı açar. Veriler depo klasöründeki `.dwhflow` altındadır. Durdurmak için pencerede Ctrl+C. |
 | `calistir.bat -Ekip` | Ekip sunucusu: ağa açar; bu bilgisayarın adı, tam adı ve IPv4 adresleri izinli olur ve hepsi ekrana yazılır. Ek ad için `-Ad dwhflow.kurum.local`. |
 
-Diğer seçenekler: `-Port 8766`, `-Veri D:\dwhflow-veri`, `-TarayiciAcma`, `-KomutuGoster`
-(çalıştırmadan komutu yazar).
+Diğer seçenekler: `-Giris` (kullanıcı adı/parola iste), `-Port 8766`, `-Veri D:\dwhflow-veri`,
+`-TarayiciAcma`, `-KomutuGoster` (çalıştırmadan komutu yazar). `calistir` kodu her zaman depodaki
+`src/` klasöründen çalıştırır; `.venv` yalnız bağımlılıkları sağlar.
 
 Güncellemek için depo klasöründe:
 
@@ -124,8 +126,8 @@ git clone https://github.com/ysnblclr/dwhflow.git && cd dwhflow && bash kur.sh
 bash calistir.sh
 ```
 
-Ekip sunucusu için `bash calistir.sh --ekip`; diğer seçenekler `--ad`, `--port`, `--veri`,
-`--tarayici-acma`, `--komutu-goster`.
+Ekip sunucusu için `bash calistir.sh --ekip`; diğer seçenekler `--giris`, `--ad`, `--port`,
+`--veri`, `--tarayici-acma`, `--komutu-goster`.
 
 ### Elle kurulum
 
@@ -165,8 +167,17 @@ platforma bağlıdır — paketin hedefe göre hazırlanmasının sebebi bu.
 ### Ekip uygulaması
 
 `calistir.bat` (ya da `dwhflow serve`) ile `http://127.0.0.1:8765` adresinde açılır.
-**Giriş zorunludur.** İlk açılışta sunucu makinesindeki tarayıcıdan yönetici hesabı
-oluşturulur (ya da komutla: `dwhflow kullanici ekle ADINIZ --rol yonetici`). Ekibe açmak için:
+
+**Giriş şimdilik kapalı (geçici).** Kullanıcı adı/parola sorulmaz; adrese erişen herkes
+yönetici yetkisiyle çalışır ve günlükte **ekip** olarak görünür. Host ve CSRF denetimleri
+yine uygulanır; kullanıcı ve oturum kodu yerinde durur. Girişi açmak için:
+
+- tek seferlik: `calistir.bat -Giris` (ya da `dwhflow serve --giris`);
+- kalıcı: `src/dwhflow/cli.py` içindeki `GIRIS_VARSAYILAN = False` satırını `True` yapın.
+
+Giriş açıkken ilk açılışta sunucu makinesindeki tarayıcıdan yönetici hesabı oluşturulur
+(ya da komutla: `dwhflow kullanici ekle ADINIZ --rol yonetici`). Girişsiz dönemde
+Ayarlar › Kullanıcılar'dan eklenen hesaplar giriş açılınca geçerli olur. Ekibe açmak için:
 
 ```powershell
 .\calistir.bat -Ekip
@@ -341,7 +352,9 @@ dwhflow convert ./dokumanlar --llm
 
 - Sunucu varsayılan olarak yalnız `127.0.0.1`'e bağlanır; `Host` başlığı izinli adlardan
   biri değilse istek reddedilir (DNS rebinding). Ekibe açarken `--allow-host` verilir.
-- **Giriş zorunlu.** Parolalar PBKDF2-SHA256 ile saklanır (en az 10 karakter, en az iki
+- **Giriş şimdilik kapalı** (`serve --girissiz` varsayılan): ağdan erişen herkes yönetici
+  yetkisindedir; sunucuyu yalnız güvenilen kurum ağına açın. Giriş açıkken (`--giris`)
+  parolalar PBKDF2-SHA256 ile saklanır (en az 10 karakter, en az iki
   karakter türü, kullanıcı adını içeremez); art arda hatalı girişte kullanıcı adı ve adres
   bazında bekleme uygulanır. Oturum çerezi HttpOnly ve SameSite=Strict'tir; parola
   değişince kullanıcının diğer oturumları kapanır.

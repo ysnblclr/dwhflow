@@ -102,11 +102,14 @@ async function renderTopbar(route, params) {
     { label: 'Yapay zekâ', href: '#/yz' },
     { label: 'Sistem durumu', href: '#/sistem' },
   ], { className: `nav-item${['ayarlar', 'settings', 'users', 'system', 'llm'].includes(active) ? ' active' : ''}` });
-  const userMenu = dropdown([store.user.name || store.user.username, ' ▾'], [
+  const userMenu = dropdown([store.user.name || store.user.username, ' ▾'], store.auth ? [
     { heading: `${store.user.username} · ${({ izleyici: 'İzleyici', duzenleyici: 'Düzenleyici', yonetici: 'Yönetici' })[store.user.role]}` },
     { label: 'Parolamı değiştir', onClick: changePassword },
     { separator: true },
     { label: 'Çıkış', danger: true, onClick: logout },
+  ] : [
+    { heading: 'Giriş kapalı: herkes yönetici yetkisinde' },
+    { label: 'Kullanıcılar (giriş açılınca geçerli)', href: '#/kullanicilar' },
   ], { alignRight: true });
 
   topbar.append(
@@ -300,6 +303,7 @@ async function boot() {
     app.append(h('div', { class: 'banner bad', text: `Sunucuya ulaşılamadı: ${error.message}` }));
     return;
   }
+  store.auth = state.auth !== false;
   if (!state.user) { store.user = null; authScreen(state); return; }
   store.user = state.user;
   try { store.meta = await get('/api/meta'); } catch (error) { toastError(error); }

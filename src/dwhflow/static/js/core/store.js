@@ -4,6 +4,7 @@ const listeners = new Map();
 
 export const store = {
   user: null,        // {username, name, role}
+  auth: true,        // false: sunucu girişsiz çalışıyor (herkes "ekip" kimliğiyle, yönetici)
   meta: null,        // /api/meta: katman/tür etiketleri, roller, işlemler
   project: null,     // seçili projenin kısa adı (slug)
   projectInfo: null, // /api/projects/{slug}: meta + summary + jobs

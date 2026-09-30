@@ -13,6 +13,11 @@ from .jobs import JobRunner
 
 COOKIE = "dwhflow_oturum"
 
+#: Giriş kapalıyken (``serve --girissiz``) her isteğin kimliği. Yönetici yetkisindedir;
+#: günlükte "ekip" diye görünür. Kullanıcı dosyasına yazılmaz.
+GUEST: dict[str, Any] = {"username": "ekip", "name": "Ekip (girişsiz)", "role": "yonetici", "active": True,
+                         "guest": True}
+
 
 @dataclass
 class AppContext:
@@ -24,6 +29,8 @@ class AppContext:
     jobs: JobRunner
     #: Archify motoru (testlerde sahte motor verilir)
     renderer: Any = None
+    #: False ise giriş istenmez; herkes ``GUEST`` kimliğiyle çalışır (geçici, bkz. ``serve --giris``)
+    auth: bool = True
 
 
 def ctx(request: Request) -> AppContext:
