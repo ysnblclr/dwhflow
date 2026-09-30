@@ -108,6 +108,18 @@ class TestSettings:
             workspace.save_global_settings({"diyagram": {"butce": 1000}})
         assert workspace.global_settings() == {}
 
+    def test_global_change_that_breaks_a_project_rejected(self, workspace):
+        """Projenin seçtiği LLM profili genelden silinirse proje ayarı geçersiz kalıyordu."""
+        profile = {"kurum": {"base_url": "http://llm.kurum.local/v1", "model": "m"}}
+        workspace.save_global_settings({"yz": {"profiller": {**settings_mod.DEFAULTS["yz"]["profiller"], **profile}}})
+        project = workspace.create_project("Kart", user="ayse")
+        project.save_settings({"yz": {"profil": "kurum"}}, user="ayse")
+        with pytest.raises(SettingsError, match="Kart"):
+            workspace.save_global_settings({"yz": {"profiller": settings_mod.DEFAULTS["yz"]["profiller"]}})
+        assert "kurum" in workspace.global_settings()["yz"]["profiller"]
+        assert project.settings().yz.profil == "kurum"
+        workspace.save_global_settings({"diyagram": {"butce": 20}})  # bozmayan değişiklik geçer
+
 
 # --------------------------------------------------------------------------- #
 # Depo

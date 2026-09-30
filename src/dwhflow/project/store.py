@@ -157,8 +157,28 @@ class Workspace:
         with lock_for(str(self.settings_file)):
             level = settings_mod.apply_patch(self.global_settings(), patch)
             settings_mod.effective(level)  # doğrula; hatalıysa yazma
+            self._check_projects_with(level)
             write_yaml(self.settings_file, level)
             return level
+
+    def _check_projects_with(self, global_level: dict[str, Any]) -> None:
+        """Genel değişiklik bir projenin ayarını geçersiz kılıyorsa (ör. projenin seçtiği LLM
+        profili silindi) kaydetme; hangi projenin neden bozulacağını söyle."""
+        broken = []
+        for project in self.projects():
+            try:
+                own = project.project_settings()
+                settings_mod.effective(self.global_settings(), own)
+            except (StoreError, settings_mod.SettingsError):
+                continue  # zaten bozuk olan proje bu değişikliği engellemez
+            try:
+                settings_mod.effective(global_level, own)
+            except settings_mod.SettingsError as exc:
+                broken.append(f"{project.meta().get('ad', project.slug)}: {exc}")
+        if broken:
+            raise settings_mod.SettingsError(
+                "bu değişiklik proje ayarlarını geçersiz kılar; önce o projelerin ayarlarını düzeltin — "
+                + " | ".join(broken[:5]))
 
     # -- projeler ----------------------------------------------------------- #
 

@@ -28,11 +28,12 @@ class JobRunner:
         self._lock = threading.Lock()
 
     def submit(self, kind: str, *, project: str | None, user: str, title: str,
-               fn: Callable[[Callable[[str], None]], Any]) -> dict[str, Any]:
+               fn: Callable[[Callable[[str], None]], Any], run: str | None = None) -> dict[str, Any]:
+        """``run``: işin ürettiği diyagram çalıştırması (çalıştırma ekranı ilerlemeyi buradan bulur)."""
         job_id = uuid.uuid4().hex[:12]
         job = {"id": job_id, "kind": kind, "project": project, "title": title, "state": "queued",
                "progress": [], "created_by": user, "created_at": _now(), "finished_at": None,
-               "result": None, "error": None}
+               "result": None, "error": None, "run": run}
         with self._lock:
             self._jobs[job_id] = job
             while len(self._jobs) > MAX_JOBS:
@@ -74,6 +75,10 @@ class JobRunner:
         with self._lock:
             jobs = [j for j in reversed(self._jobs.values()) if project is None or j["project"] == project]
             return [{k: v for k, v in j.items() if k not in ("trace", "result")} for j in jobs[:limit]]
+
+    def for_run(self, project: str, run: str) -> dict[str, Any] | None:
+        """Çalıştırmayı üreten işin son durumu (ilerleme mesajlarıyla); iş bellekten düştüyse ``None``."""
+        return next((j for j in self.list(project, limit=MAX_JOBS) if j.get("run") == run), None)
 
     def active(self, project: str) -> list[dict[str, Any]]:
         return [j for j in self.list(project, limit=MAX_JOBS) if j["state"] in ("queued", "running")]

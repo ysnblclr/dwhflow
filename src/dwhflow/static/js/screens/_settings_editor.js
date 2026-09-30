@@ -819,7 +819,9 @@ export async function mountSettingsEditor(root, { scope, slug = null, tab = null
         h('p', {}, 'JSON: ', h('code', { text: 'mappings[*]' }), ' mappings dizisinin her öğesi; ', h('code', { text: 'source.table' }),
           ' kayıttaki source nesnesinin table alanı.'),
         h('p', {}, 'Dosya deseni joker karakter kullanır: ', h('code', { text: '*_mapping.xml' }), ', ', h('code', { text: 'ETL_??.json' }), '.'),
-        h('p', { class: 'muted', text: 'Not: şablonlar ayar profiline kaydedilir; bu sürümde kurum şablonlarını uygulayan XML/JSON okuyucusu henüz etkin değildir.' })),
+        h('p', { class: 'muted', text: 'Şablon yalnız adı dosya desenine uyan .xml/.json dosyalarına uygulanır; Control-M, DataStage, draw.io '
+          + 'gibi tanınan dosyaları almaz. Geçersiz bir şablon okumayı durdurmaz, nedeni dokümanın raporunda görünür. '
+          + 'Örnek tanımlar ve dosyalar: src/dwhflow/examples/ornek_sablon (sablonlar.yaml).' })),
     ];
   }
 

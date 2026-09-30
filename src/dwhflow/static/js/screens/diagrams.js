@@ -420,6 +420,13 @@ async function fetchJob(jobId) {
   try { return await get(p`/api/jobs/${jobId}`); } catch { return null; }
 }
 
+/** Çalışan çalıştırmanın işi: sunucu ayrıntıda verir (başka kullanıcılar da ilerlemeyi görür). */
+async function runJob(detail, jobId) {
+  if (!isActive(detail.status && detail.status.state)) return null;
+  if (detail.job) return detail.job;
+  return jobId ? fetchJob(jobId) : null;
+}
+
 async function renderRun(root, slug, run, query, current) {
   const editable = canEdit();
   const jobId = query.is || null;
@@ -437,7 +444,7 @@ async function renderRun(root, slug, run, query, current) {
     }
     throw error;
   }
-  let job = jobId && isActive(detail.status && detail.status.state) ? await fetchJob(jobId) : null;
+  let job = await runJob(detail, jobId);
   let pollError = null;
   const viewer = h('div');
 
@@ -453,7 +460,7 @@ async function renderRun(root, slug, run, query, current) {
     }
     if (current !== token) return;
     detail = next;
-    job = jobId && isActive(detail.status && detail.status.state) ? await fetchJob(jobId) : null;
+    job = await runJob(detail, jobId);
     if (current !== token) return;
     draw();
     tick();

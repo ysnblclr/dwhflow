@@ -48,6 +48,7 @@ def create_run(request: Request, slug: str, body: Annotated[dict[str, Any] | Non
         "diyagram", project=project.slug, user=user["username"], title="diyagram üretimi",
         fn=lambda progress: _summary(render_run(project, state, folder, engine=ctx.renderer, quality=quality,
                                                 progress=progress), run_id),
+        run=run_id,
     )
     return {"run": run_id, "job": job}
 
@@ -76,6 +77,7 @@ def run_detail(request: Request, slug: str, run_id: str) -> dict[str, Any]:
         raise HTTPException(404, str(exc)) from exc
     return {"id": run_id, "status": read_json(folder / "durum.json", {}) or {},
             "report": read_json(folder / "dwhflow-run.json", None),
+            "job": deps.ctx(request).jobs.for_run(project.slug, run_id),
             "base_url": f"/dosya/{slug}/{run_id}/"}
 
 

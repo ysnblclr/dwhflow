@@ -394,6 +394,8 @@ class TestDiagrams:
         assert admin.get(f"/dosya/{kart}/{run}/..%2F..%2Fproje.yaml").status_code == 404
         detail = admin.get(f"/api/projects/{kart}/runs/{run}").json()
         assert detail["report"]["diagrams"] and detail["status"]["state"] == "done"
+        # İlerleme işi başlatan dışındaki kullanıcılar için de ayrıntıda gelir.
+        assert detail["job"]["id"] == response["job"]["id"] and detail["job"]["progress"]
         admin.post(f"/api/projects/{kart}/corrections", json={"ops": [
             {"islem": "nesne_sil", "hedef": {"nesne": "BDDK_PORTAL"}}]}, headers=H)
         diff = admin.get(f"/api/projects/{kart}/compare?a={run}").json()
