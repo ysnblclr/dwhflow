@@ -318,7 +318,9 @@ class ProjectEngine:
                 project.log(user, "duzeltme", {"islem_kaydi": op.model_dump(exclude_none=True)})
             project.touch()
             self.invalidate(project)
-            return [op.model_dump(exclude_none=True) for op in created]
+            messages = report.by_id()
+            # "sonuc" yalnız yanıtta döner (ör. "mevcut nesne onaylandı"); dosyaya yazılmaz.
+            return [{**op.model_dump(exclude_none=True), "sonuc": messages[op.id]["mesaj"]} for op in created]
 
     def undo(self, project: Project, correction_id: str, *, user: str) -> dict[str, Any]:
         with project.lock:

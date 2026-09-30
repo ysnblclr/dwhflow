@@ -168,6 +168,19 @@ class TestProjects:
         names = {d["name"] for d in admin.get(f"/api/projects/{kart}/datasets").json()["items"]}
         assert {"STG_YENI", "ODS_YENI"} <= names
 
+    def test_uploaded_html_is_only_downloaded(self, admin, kart):
+        """Güvenlik: yüklenen HTML uygulamanın kökeninden sayfa olarak açılamaz (depolanmış XSS)."""
+        page = b"<h1>Akis</h1><p>STG_WEB tablosundan ODS_WEB tablosuna gece aktarilir.</p><script>alert(1)</script>"
+        response = admin.post(f"/api/projects/{kart}/documents", files=[("files", ("wiki.html", page))], headers=H)
+        assert response.status_code == 200, response.text
+        download = admin.get(f"/api/projects/{kart}/documents/wiki.html/download")
+        assert download.status_code == 200 and download.content == page
+        assert download.headers["content-type"] == "application/octet-stream"
+        assert download.headers["content-disposition"].startswith("attachment")
+        assert download.headers["x-content-type-options"] == "nosniff"
+        preview = admin.get(f"/api/projects/{kart}/documents/wiki.html/preview").json()
+        assert preview["format"] == "html" and all("<script" not in str(b) for b in preview["blocks"])
+
     def test_upload_rejects_bad_extension(self, admin, kart):
         response = admin.post(f"/api/projects/{kart}/documents", files=[("files", ("x.exe", b"MZ"))], headers=H)
         assert response.status_code == 400
@@ -178,6 +191,25 @@ class TestProjects:
         assert preview["format"] == "word" and preview["items"] and preview["leftovers"]
         for item in preview["items"]:
             assert item["locator"] in locators or any(item["locator"].startswith(b + " · ") for b in locators)
+
+    def test_preview_leftovers_carry_review_key(self, admin, kart, monkeypatch):
+        url = f"/api/projects/{kart}/documents/Kart_Tasarim_Dokumani.docx/preview"
+        leftover = admin.get(url).json()["leftovers"][0]
+        assert leftover["key"].startswith("paragraf:") and leftover["closed"] is False
+        # Kuyruk sınırının ötesindeki paragraf da anahtarıyla kapatılabilir.
+        from dwhflow.project import review as review_mod
+        monkeypatch.setattr(review_mod, "MAX_ITEMS_PER_TYPE", 0)
+        engine = admin.app.state.ctx.engine
+        engine.invalidate(admin.app.state.ctx.workspace.project(kart))
+        assert not admin.get(f"/api/projects/{kart}/review?type=paragraf").json()["items"]
+        response = admin.post(f"/api/projects/{kart}/review/decide",
+                              json={"decisions": [{"key": leftover["key"], "decision": "reject"}]}, headers=H)
+        assert response.status_code == 200, response.text
+        closed = next(x for x in admin.get(url).json()["leftovers"] if x["key"] == leftover["key"])
+        assert closed["closed"] is True
+        again = admin.post(f"/api/projects/{kart}/review/decide",
+                           json={"decisions": [{"key": leftover["key"], "decision": "reject"}]}, headers=H)
+        assert again.status_code == 409
 
     def test_force_reader(self, admin, kart):
         response = admin.put(f"/api/projects/{kart}/documents/operasyon_notlari.txt/reader",
@@ -220,12 +252,19 @@ class TestModelAndCorrections:
         body = admin.get(f"/api/projects/{kart}/paths?source=SRC_KART_ISLEM&target=BDDK_PORTAL").json()
         assert body["paths"] and body["paths"][0][0]["name"] == "SRC_KART_ISLEM"
 
+    def test_paths_resolve_processes_and_report_ambiguity(self, admin, kart):
+        body = admin.get(f"/api/projects/{kart}/paths?source=SP_ODS_KART&target=BDDK_PORTAL").json()
+        assert body["source"] == "sp_ods_kart" and body["paths"]
+        missing = admin.get(f"/api/projects/{kart}/paths?source=YOK_BOYLE&target=BDDK_PORTAL")
+        assert missing.status_code == 404 and "bulunamadı" in missing.json()["detail"]
+
     def test_correction_flow(self, admin, kart):
         response = admin.post(f"/api/projects/{kart}/corrections", json={"ops": [
             {"islem": "katman_degistir", "hedef": {"nesne": "STG_MUSTERI"}, "deger": {"katman": "ods"}}],
             "reason": "test"}, headers=H)
         assert response.status_code == 200
         created = response.json()["created"][0]
+        assert "sonuc" in created and "sonuc" not in admin.get(f"/api/projects/{kart}/corrections").json()[-1]
         assert admin.get(f"/api/projects/{kart}/datasets/stg_musteri").json()["layer"] == "ods"
         detail = admin.get(f"/api/projects/{kart}/datasets/stg_musteri").json()
         assert detail["corrections"][0]["id"] == created["id"]

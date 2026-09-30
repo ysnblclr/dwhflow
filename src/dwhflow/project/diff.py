@@ -25,12 +25,12 @@ def diff_models(before: Model, after: Model, *, limit: int = 500) -> dict[str, A
         old, new = old_nodes[node_id], new_nodes[node_id]
         for field in _FIELDS:
             if _value(old, field) != _value(new, field):
-                changed.append({"id": node_id, "name": new.name, "field": field,
+                changed.append({"id": node_id, "name": new.name, "type": new.node_type.value, "field": field,
                                 "old": _value(old, field), "new": _value(new, field)})
         old_cols = {c.name for c in getattr(old, "columns", [])}
         new_cols = {c.name for c in getattr(new, "columns", [])}
         if old_cols != new_cols:
-            changed.append({"id": node_id, "name": new.name, "field": "columns",
+            changed.append({"id": node_id, "name": new.name, "type": new.node_type.value, "field": "columns",
                             "old": sorted(old_cols - new_cols), "new": sorted(new_cols - old_cols)})
 
     def names(model: Model) -> dict[str, str]:

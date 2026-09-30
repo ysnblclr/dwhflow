@@ -13,6 +13,7 @@ from ..graph import ModelGraph
 from ..ingest.base import fold
 from ..model import COLUMN_SEP, EdgeKind, Layer
 from ..project import OP_LABELS, CorrectionError
+from ..project.corrections import NameIndex
 from . import deps
 from .routes_projects import _state
 from .views import ModelView, _sources, ref_name
@@ -153,13 +154,19 @@ def impact(request: Request, slug: str, node_id: str) -> dict[str, Any]:
 @router.get("/api/projects/{slug}/paths")
 def paths(request: Request, slug: str, source: str, target: str, limit: int = 5) -> dict[str, Any]:
     deps.user(request)
-    from ..render.slices import resolve
-
     view = ModelView(_state(request, deps.project(request, slug)))
-    try:
-        source_id, target_id = resolve(view.model, source), resolve(view.model, target)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc).strip("'")) from exc
+    index = NameIndex(view.model)
+
+    def resolve(raw: str) -> str:
+        if raw in view.model.nodes:
+            return raw
+        node_id = index.resolve(raw)
+        if node_id is None:
+            problem = "birden fazla nesneyle eşleşiyor" if index.ambiguous(raw) else "bulunamadı"
+            raise HTTPException(404, f"'{raw}' {problem}")
+        return node_id
+
+    source_id, target_id = resolve(source), resolve(target)
     graph = ModelGraph(view.model)
     found = graph.paths(source_id, target_id, limit=max(1, min(limit, 20)))
     return {"source": source_id, "target": target_id,

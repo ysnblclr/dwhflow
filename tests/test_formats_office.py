@@ -91,9 +91,9 @@ class TestRegistration:
                        ".dot", ".eml", ".msg", ".zip"):
             assert suffix in ACCEPTED
 
-    def test_html_is_read_but_not_directly_uploadable(self, tmp_path):
-        """Web arayüzü girdileri geri sunduğu için HTML yüklemesi kapalı (depolanmış XSS); okuma açık."""
-        assert not {".html", ".htm", ".xhtml", ".mht", ".mhtml"} & set(ACCEPTED)
+    def test_html_is_uploadable(self, tmp_path):
+        """Dokümanlar yalnız ek olarak indirildiği için HTML de yüklenebilir (bkz. test_api_app)."""
+        assert {".html", ".htm", ".xhtml", ".mht", ".mhtml"} <= set(ACCEPTED)
         path = tmp_path / "sayfa.HTML"
         path.write_text("<p>x</p>", encoding="utf-8")
         assert resolve(path, DEFAULT)[0].key == "html"

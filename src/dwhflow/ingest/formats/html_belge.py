@@ -4,13 +4,11 @@ Confluence/wiki dışa aktarımları için: başlıklar konum olur (``§ Başlı
 paragraflar ve liste maddeleri metin kurallarına, veri tabloları tablo yorumlayıcısına gider
 (ayrıntı: ``_html``). Betikler ve stiller yok sayılır; hiçbir şey çalıştırılmaz ya da indirilmez.
 
-**Güvenlik notu — neden ``primary=False``:** web arayüzü yüklenen dosyaları çalıştırma klasöründen
-(``/runs/…/inputs/``) statik olarak geri sunuyor. HTML uzantıları kabul edilen yükleme
-uzantılarına (``ACCEPTED``) girerse yüklenen bir sayfa uygulamanın kendi kökeninden açılabilir
-(depolanmış XSS). Bu yüzden biçim uzantıyı sahiplenmez; **dosya adıyla tespit edilir** (sniff).
-Sonuç: HTML komut satırından, zip/e-posta içinden ve zorlanan okuyucuyla okunur, ama web'e
-doğrudan yüklenemez. Girdiler güvenli sunulduğunda (``Content-Disposition: attachment`` ya da
-``Content-Security-Policy: sandbox``) ``primary=True`` yapılabilir.
+**Güvenlik notu:** yüklenen dokümanlar arayüzde hiçbir zaman sayfa olarak açılmaz; yalnız
+``Content-Disposition: attachment`` ve ``application/octet-stream`` ile indirilir ve önizleme
+metin blokları olarak gösterilir (``tests/test_api_app.py`` bunu denetler). Bu yüzden HTML
+uzantıları web'e doğrudan yüklenebilir. Dokümanları kendi kökeninden satır içi sunan bir uç
+eklenirse bu biçim yeniden ``primary=False`` yapılmalıdır (depolanmış XSS).
 """
 
 from __future__ import annotations
@@ -52,6 +50,5 @@ def preview_html(path: Path) -> list[Block]:
 
 
 register(FormatSpec("html", "HTML", SUFFIXES, read_html, preview_html, sniff=looks_like_html_file,
-                    description="Web sayfaları ve Confluence dışa aktarımları: başlıklar, paragraflar, tablolar "
-                                "(web arayüzüne doğrudan değil, zip/e-posta içinde ya da komut satırından)",
-                    sample="ornek_bicimler/kart_confluence.html"), primary=False)
+                    description="Web sayfaları ve Confluence dışa aktarımları: başlıklar, paragraflar, tablolar",
+                    sample="ornek_bicimler/kart_confluence.html"))

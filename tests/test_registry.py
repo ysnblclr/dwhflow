@@ -107,6 +107,26 @@ class TestIngestHooks:
         report = ingest_files([path]).reports[0]
         assert report.status == "unsupported" and 'dwhflow[ofis]' in " ".join(report.notes)
 
+    def test_container_reports_use_format_label(self):
+        """Regresyon: e-posta raporu "Arşiv" diye görünüyordu."""
+        eml = SAMPLES.parent / "ornek_bicimler" / "kart_degisiklik.eml"
+        zipped = SAMPLES.parent / "ornek_bicimler" / "kart_paket.zip"
+        reports = {r.file: r for r in ingest_files([eml, zipped]).reports}
+        assert reports["kart_degisiklik.eml"].reader == "E-posta (.eml)"
+        assert reports["kart_paket.zip"].reader == "Zip arşivi"
+        assert all(r.format == "arsiv" for r in reports.values() if r.file in ("kart_degisiklik.eml", "kart_paket.zip"))
+
+    def test_same_named_files_all_counted(self, tmp_path):
+        """Regresyon: aynı adlı iç dosyalar sayımda birbirini eziyordu (biri 0 nesne, "boş" görünüyordu)."""
+        archive = tmp_path / "paket.zip"
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.write(SAMPLES / "kart_mart_yukleme.sql", "ic/kart_mart_yukleme.sql")
+        reports = [r for r in ingest_files([SAMPLES / "kart_mart_yukleme.sql", archive]).reports
+                   if r.file == "kart_mart_yukleme.sql"]
+        assert len(reports) == 2
+        assert all(r.status == "ok" and r.datasets for r in reports)
+        assert all(any("aynı adlı 2 dosya" in n for n in r.notes) for r in reports)
+
     def test_leftovers_kept_without_llm(self):
         result = ingest_files(sorted(SAMPLES.iterdir()))
         assert result.leftovers and all(len(item) == 3 for item in result.leftovers)

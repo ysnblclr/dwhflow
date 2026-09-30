@@ -294,7 +294,7 @@ export async function render(root, params, query = {}) {
   const leftovers = isLatest ? preview.leftovers || [] : [];
   let openParagraphs = new Map();
   let reviewComplete = false;
-  if (leftovers.length) {
+  if (leftovers.some((l) => typeof l.closed !== 'boolean')) {
     try {
       const review = await get(p`/api/projects/${slug}/review?type=paragraf`);
       const items = review.items || [];
@@ -302,7 +302,8 @@ export async function render(root, params, query = {}) {
       openParagraphs = new Map(items.filter((i) => i.file === name).map((i) => [i.locator, i]));
     } catch { /* kuyruk okunamazsa paragraflar açık sayılır */ }
   }
-  const paragraphState = (locator) => {
+  const paragraphState = ({ locator, closed }) => {
+    if (typeof closed === 'boolean') return closed ? 'closed' : 'open';
     if (openParagraphs.has(locator)) return 'open';
     return reviewComplete ? 'closed' : 'open';
   };
@@ -359,7 +360,7 @@ export async function render(root, params, query = {}) {
 
   // addLink/closeOnly aşağıda tanımlıdır; düğmeler yalnız tıklanınca çağırır.
   const paragraphTools = (leftover) => {
-    const state = paragraphState(leftover.locator);
+    const state = paragraphState(leftover);
     return h('div', { class: 'row document-leftover-tools document-skip' },
       state === 'closed' ? badge('işlendi', 'ok') : badge('insan bakmalı', 'warn'),
       state === 'closed' ? h('span', { class: 'small muted', text: 'Onay kuyruğunda kapatıldı.' })
@@ -497,11 +498,14 @@ export async function render(root, params, query = {}) {
 
   /** Paragrafı onay kuyruğunda "reddet" kararıyla kapatır. Dönüş: kapandı mı. */
   const closeParagraph = async (leftover) => {
-    const review = await get(p`/api/projects/${slug}/review?type=paragraf`);
-    const item = (review.items || []).find((i) => i.file === name && i.locator === leftover.locator);
-    if (!item) { toast('Paragraf onay kuyruğunda bulunamadı; zaten kapatılmış olabilir.', 'warn'); return false; }
+    let key = leftover.key;
+    if (!key) {
+      const review = await get(p`/api/projects/${slug}/review?type=paragraf`);
+      key = (review.items || []).find((i) => i.file === name && i.locator === leftover.locator)?.key;
+    }
+    if (!key) { toast('Paragraf onay kuyruğunda bulunamadı; zaten kapatılmış olabilir.', 'warn'); return false; }
     await post(p`/api/projects/${slug}/review/decide`, {
-      decisions: [{ key: item.key, decision: 'reject' }], reason: `Doküman incelemesinde işlendi: ${name} · ${leftover.locator}`.slice(0, 500),
+      decisions: [{ key, decision: 'reject' }], reason: `Doküman incelemesinde işlendi: ${name} · ${leftover.locator}`.slice(0, 500),
     });
     toast('Paragraf işlendi olarak kapatıldı', 'ok');
     return true;
@@ -597,7 +601,7 @@ export async function render(root, params, query = {}) {
     });
     if (result !== 'ok') return;
     toast(`Bağ eklendi${created?.id ? ` (${created.id})` : ''}`, 'ok');
-    if (paragraphState(leftover.locator) === 'open'
+    if (paragraphState(leftover) === 'open'
       && await confirmDialog('Paragraftaki akış girildi. Paragraf onay kuyruğunda "işlendi" olarak kapatılsın mı?',
         { title: 'Paragrafı kapat', confirmLabel: 'Kapat' })) {
       try { await closeParagraph(leftover); } catch (error) { toastError(error); }

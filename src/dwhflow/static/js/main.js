@@ -67,14 +67,17 @@ function navItem(text, href, { key, active, disabled, count } = {}) {
 }
 
 async function renderTopbar(route, params) {
-  topbar.classList.remove('hidden');
-  clear(topbar);
+  // Oturum bir istek sırasında düşerse (401) giriş ekranı açılmıştır; menü çizilmez.
+  if (!store.user) return;
   const slug = params.slug || store.project;
   const info = store.projectInfo;
   const active = route?.nav || route?.screen;
   const has = Boolean(slug);
   const reviewCount = info?.summary?.review?.toplam || 0;
   const projects = await projectsForMenu();
+  if (!store.user) return;
+  topbar.classList.remove('hidden');
+  clear(topbar);
   const projectName = info?.ad || projects.find((x) => x.slug === slug)?.ad;
 
   const projectMenu = dropdown(
@@ -235,7 +238,7 @@ async function route() {
     if (projectChanged || !store.projectInfo) await refreshProject();
   }
   await renderTopbar(current, params);
-  if (token !== renderToken) return;
+  if (token !== renderToken || !store.user) return;
   if (currentModule?.dispose) { try { currentModule.dispose(); } catch (error) { console.error(error); } }
   clear(app);
   app.append(loading());
@@ -274,6 +277,7 @@ window.addEventListener('hashchange', () => {
 
 // İş bitince (okuma, diyagram) proje özeti ve açık ekran yenilenir.
 on('project:changed', async () => {
+  if (!store.user) return;
   await refreshProject();
   const parsed = parse(location.hash);
   if (parsed) await renderTopbar(parsed.route, parsed.params);
@@ -285,6 +289,7 @@ window.addEventListener('dwhflow:auth', () => { if (store.user) { store.user = n
 // ---- açılış ------------------------------------------------------------- //
 
 async function boot() {
+  renderToken += 1; // yarıda kalan ekran çizimleri (ör. oturum düşünce) giriş ekranını ezmesin
   clear(app);
   app.append(loading());
   let state;

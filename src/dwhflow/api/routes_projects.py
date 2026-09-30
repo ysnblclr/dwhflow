@@ -12,6 +12,8 @@ from ..ingest.base import fold
 from ..ingest.registry import REGISTRY, accepted_suffixes, spec_for
 from ..project import NotFound, Project, StoreError
 from ..project import samples as samples_mod
+from ..project.corrections import rejected_suggestions
+from ..project.review import paragraph_key
 from ..project.settings import SettingsError
 from . import deps
 from .views import ModelView
@@ -239,8 +241,12 @@ def document_preview(request: Request, slug: str, name: str, version: int | None
                               "status": edge.status.value, "locator": source.locator,
                               "evidence": source.evidence, "extractor": source.extractor,
                               "confidence": source.confidence})
-    leftovers = [{"locator": loc, "text": text} for file, loc, text, *_ in state.base.ingest.get("leftovers", [])
-                 if file == path.name]
+    closed = rejected_suggestions(state.corrections)
+    leftovers = []
+    for file, loc, text, *_ in state.base.ingest.get("leftovers", []):
+        if file == path.name:
+            key = paragraph_key(file, loc, text)
+            leftovers.append({"locator": loc, "text": text, "key": key, "closed": key in closed})
     spec = spec_for(fmt) if fmt else None
     return {"name": name, "format": fmt, "label": spec.label if spec else None, "blocks": blocks,
             "items": items, "leftovers": leftovers}

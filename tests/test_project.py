@@ -291,6 +291,42 @@ class TestCorrections:
         with pytest.raises(CorrectionError):
             corr.check(base_model, op("nesne_sil", {"nesne": "YOK"}))
 
+    def test_edge_ops_on_names_with_hash(self, base_model):
+        """Regresyon: "kart_mart_yukleme #1" TABLO#KOLON sanılıp bağ işlemleri sahipsiz kalıyordu."""
+        model, report = corr.apply(base_model, [
+            op("onayla", {"kaynak": "ODS_KART_ISLEM", "hedef": "kart_mart_yukleme #1", "tur": "reads"}, number=1),
+            op("bag_sil", {"kaynak": "kart_mart_yukleme #2", "hedef": "MART_KART_OZET"}, number=2),
+            op("bag_ekle", {"kaynak": "kart_mart_yukleme #1", "hedef": "kart_mart_yukleme #2"}, number=3),
+        ])
+        assert [r["durum"] for r in report.results] == ["uygulandi"] * 3, report.results
+        kinds = {(e.kind, e.source, e.target) for e in model.edges}
+        assert (EdgeKind.WRITES, "kart_mart_yukleme_2", "dwh_mart_kart_ozet") not in kinds
+        assert (EdgeKind.PRECEDES, "kart_mart_yukleme_1", "kart_mart_yukleme_2") in kinds
+        # Gerçek kolon başvurusu yine kolon olarak çözülür.
+        model, report = corr.apply(base_model, [op("kolon_esle", {"kaynak": "ODS_MUSTERI#MUSTERI_NO",
+                                                                   "hedef": "DWH.D_MUSTERI#YENI"})])
+        assert report.results[0]["durum"] == "uygulandi"
+
+    @pytest.mark.parametrize(("hedef", "message"), [
+        ({"kaynak": "SP_ODS_KART", "hedef": "ODS_KART_ISLEM", "tur": "reads"}, "kaynak bir veri nesnesi"),
+        ({"kaynak": "STG_MUSTERI", "hedef": "ODS_MUSTERI", "tur": "writes"}, "kaynak bir süreç"),
+        ({"kaynak": "STG_MUSTERI", "hedef": "SP_ODS_KART", "tur": "precedes"}, "kaynak bir süreç"),
+        ({"kaynak": "SP_ODS_KART", "hedef": "STG_MUSTERI", "tur": "derives_from"}, "kaynak bir veri nesnesi"),
+        ({"kaynak": "STG_MUSTERI#A", "hedef": "ODS_MUSTERI#B", "tur": "derives_from"}, "kolonlar arasında"),
+        ({"kaynak": "STG_MUSTERI", "hedef": "ODS_MUSTERI", "tur": "column_maps_to"}, "TABLO#KOLON"),
+    ])
+    def test_explicit_edge_kind_checks_endpoints(self, base_model, hedef, message):
+        model, report = corr.apply(base_model, [op("bag_ekle", hedef)])
+        assert report.results[0]["durum"] == "hata" and message in report.results[0]["mesaj"]
+        assert len(model.edges) == len(base_model.edges)
+
+    def test_explicit_edge_kind_valid(self, base_model):
+        _, report = corr.apply(base_model, [
+            op("bag_ekle", {"kaynak": "STG_MUSTERI", "hedef": "SP_ODS_KART", "tur": "reads"}, number=1),
+            op("bag_ekle", {"kaynak": "STG_MUSTERI#A", "hedef": "ODS_MUSTERI#B", "tur": "influences"}, number=2),
+        ])
+        assert [r["durum"] for r in report.results] == ["uygulandi", "uygulandi"], report.results
+
 
 # --------------------------------------------------------------------------- #
 # Derleme hattı
@@ -435,7 +471,7 @@ class TestDiff:
                                            op("katman_degistir", {"nesne": "STG_MUSTERI"}, {"katman": "ods"}, 2)])
         diff = diff_models(base_model, after)
         assert [r["id"] for r in diff["nodes_removed"]] == ["bddk_portal"]
-        assert {"id": "stg_musteri", "name": "STG_MUSTERI", "field": "layer", "old": "staging",
+        assert {"id": "stg_musteri", "name": "STG_MUSTERI", "type": "dataset", "field": "layer", "old": "staging",
                 "new": "ods"} in diff["nodes_changed"]
         assert not diff["empty"] and diff_models(base_model, base_model)["empty"]
 

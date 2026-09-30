@@ -154,20 +154,30 @@ def _expand(paths: list[Path], workdir: Path, reports: list[DocReport]) -> list[
             continue
         target = workdir / f"{index:04d}-{path.stem}"
         target.mkdir(parents=True, exist_ok=True)
+        label = _container_label(path)
         try:
             inner = expander(path, target)
         except Exception as exc:  # noqa: BLE001 - bozuk arşiv yalnız kendini düşürsün
-            report = DocReport(file=path.name, reader="Arşiv", status="error", format="arsiv")
-            report.note(f"arşiv açılamadı: {type(exc).__name__}: {str(exc)[:200]}")
+            report = DocReport(file=path.name, reader=label, status="error", format="arsiv")
+            report.note(f"açılamadı: {type(exc).__name__}: {str(exc)[:200]}")
             reports.append(report)
             continue
-        report = DocReport(file=path.name, reader="Arşiv", format="arsiv")
+        report = DocReport(file=path.name, reader=label, format="arsiv")
         report.note(f"{len(inner)} dosya çıkarıldı; her biri ayrı raporlanır")
         reports.append(report)
         out.extend((item, path.name) for item in inner)
     if len(out) > MAX_DOCUMENTS:
         raise ValueError(f"bir seferde en çok {MAX_DOCUMENTS} doküman okunabilir (arşivler dahil)")
     return out
+
+
+def _container_label(path: Path) -> str:
+    """Açılan kabın okunur adı: "Zip arşivi", "E-posta (.eml)", "IBM DataStage" …"""
+    key = REGISTRY.by_suffix.get(path.suffix.lower())
+    spec = REGISTRY.formats.get(key) if key else None
+    if spec is None and path.suffix.lower() == ".isx":
+        spec = REGISTRY.formats.get("datastage")
+    return spec.label if spec else "Arşiv"
 
 
 def _read_one(path: Path, container: str | None, builder: ModelBuilder,
@@ -195,7 +205,7 @@ def _read_one(path: Path, container: str | None, builder: ModelBuilder,
         report.note(f"okunamadı: {type(exc).__name__}: {str(exc)[:200]}")
         leftovers = []
     if container:
-        report.note(f"{container} arşivinden")
+        report.note(f"{container} içinden")
     return report, list(leftovers or [])
 
 
@@ -257,7 +267,6 @@ def preview_document(path: Path, config: IngestConfig | None = None) -> tuple[st
 
 def _count(model: Model, reports: list[DocReport]) -> None:
     """Rapor sayılarını modeldeki kaynak bilgisinden doldurur (birleştirme sonrası gerçek sayı)."""
-    by_file = {r.file: r for r in reports}
     datasets: dict[str, set[str]] = {}
     processes: dict[str, set[str]] = {}
     for dataset in model.datasets.values():
@@ -266,11 +275,20 @@ def _count(model: Model, reports: list[DocReport]) -> None:
     for process in model.processes.values():
         for source in process.sources:
             processes.setdefault(source.file or "", set()).add(process.id)
-    for file, report in by_file.items():
+    same_name: dict[str, int] = {}
+    for report in reports:
+        if report.format not in ("yaml", "arsiv"):
+            same_name[report.file] = same_name.get(report.file, 0) + 1
+    for report in reports:
         if report.format in ("yaml", "arsiv"):
             continue
+        file = report.file
         report.datasets = len(datasets.get(file, ()))
         report.processes = max(report.processes, len(processes.get(file, ())))
+        if same_name[file] > 1:
+            # Kaynak bilgisi yalnız dosya adını taşır; aynı adlı dosyaların sayıları ayrılamaz.
+            report.note(f"aynı adlı {same_name[file]} dosya var; nesne sayıları birlikte verilir")
+            continue
         if report.status == "ok" and not (report.datasets or report.processes or report.flows):
             report.status = "empty"
             report.note("bu dokümandan akış bilgisi çıkarılamadı")

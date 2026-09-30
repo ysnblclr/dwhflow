@@ -60,6 +60,21 @@ OP_LABELS = {
 #: Model dışı işlemler: modele dokunmaz, boru hattında ayrıca yorumlanır.
 META_OPS = {"bulgu_yoksay", "oneri_reddet"}
 DIRECT_KINDS = {EdgeKind.DERIVES_FROM, EdgeKind.TRANSFERS, EdgeKind.PRECEDES}
+COLUMN_KINDS = {EdgeKind.COLUMN_MAPS_TO, EdgeKind.INFLUENCES}
+#: Bağ türü → (kaynak tipi, hedef tipi); ``None`` her tip olabilir demek.
+EDGE_ENDPOINTS: dict[EdgeKind, tuple[str | None, str | None]] = {
+    EdgeKind.READS: ("dataset", "process"),
+    EdgeKind.CONSUMES_FILE: ("dataset", "process"),
+    EdgeKind.WRITES: ("process", "dataset"),
+    EdgeKind.PRODUCES_FILE: ("process", "dataset"),
+    EdgeKind.VALIDATES: ("process", "dataset"),
+    EdgeKind.RECONCILES: ("process", "dataset"),
+    EdgeKind.TRANSFERS: ("dataset", "dataset"),
+    EdgeKind.DERIVES_FROM: ("dataset", "dataset"),
+    EdgeKind.PRECEDES: ("process", "process"),
+    EdgeKind.TRIGGERS: (None, "process"),
+}
+NODE_TYPE_LABELS = {"dataset": "veri nesnesi (tablo/dosya)", "process": "süreç"}
 
 
 class CorrectionError(ValueError):
@@ -188,8 +203,16 @@ class _Applier:
         return node_id
 
     def ref(self, raw: Any) -> str:
-        """Nesne ya da ``TABLO#KOLON`` başvurusu → model başvurusu."""
-        table, column = split_column_ref(str(raw))
+        """Nesne ya da ``TABLO#KOLON`` başvurusu → model başvurusu.
+
+        Adında ``#`` geçen nesne (ör. ``"kart_yukleme #1"`` süreci) önce bütün adıyla aranır;
+        yalnız öyle bir nesne yoksa son ``#``ten tablo ve kolon diye bölünür."""
+        text = "" if raw is None else str(raw)
+        if COLUMN_SEP in text:
+            whole = self.index.resolve(text)
+            if whole is not None:
+                return whole
+        table, column = split_column_ref(text)
         node_id = self.node(table)
         if column is None:
             return node_id
@@ -430,7 +453,23 @@ class _Applier:
     def _kind(self, op: Correction, source: str, target: str) -> EdgeKind:
         raw = op.hedef.get("tur")
         kind = _enum(EdgeKind, raw, "bağ türü") if raw else self._default_kind(source, target)
+        self._check_endpoints(kind, source, target)
         return kind
+
+    def _check_endpoints(self, kind: EdgeKind, source: str, target: str) -> None:
+        """Bağ türünün iki ucu doğru türde mi (ör. ``reads`` veri nesnesinden sürece gider)."""
+        columns = (COLUMN_SEP in source, COLUMN_SEP in target)
+        if kind in COLUMN_KINDS:
+            if not all(columns):
+                raise CorrectionError("kolon bağının iki ucu da TABLO#KOLON olmalı")
+            return
+        if any(columns):
+            raise CorrectionError(f"'{kind.value}' bağı kolonlar arasında kurulamaz")
+        expected = EDGE_ENDPOINTS.get(kind, (None, None))
+        actual = (self.model.node_type_of(source), self.model.node_type_of(target))
+        for end, want, got in zip(("kaynak", "hedef"), expected, actual, strict=True):
+            if want and want != got:
+                raise CorrectionError(f"'{kind.value}' bağında {end} bir {NODE_TYPE_LABELS[want]} olmalı")
 
     def op_bag_ekle(self, op: Correction) -> str:
         source, target = self.ref(op.hedef.get("kaynak")), self.ref(op.hedef.get("hedef"))
@@ -449,10 +488,8 @@ class _Applier:
             self._add_edge(op, EdgeKind.WRITES, process_id, target)
             return first
         kind = self._kind(op, source, target)
-        if kind is EdgeKind.COLUMN_MAPS_TO:
+        if kind in COLUMN_KINDS:
             for ref in (source, target):
-                if COLUMN_SEP not in ref:
-                    raise CorrectionError("kolon eşlemesinin iki ucu da TABLO#KOLON olmalı")
                 self._ensure_column(ref)
         return self._add_edge(op, kind, source, target, expression)
 
