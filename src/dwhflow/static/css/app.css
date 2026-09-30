@@ -233,3 +233,27 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; border-radius: 2px
 .dropzone { border: 2px dashed var(--line); border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; }
 .dropzone:hover, .dropzone.hot, .dropzone:focus { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+
+/* ---- dokümanlar / doküman inceleme / örnekler / günlük / karşılaştır --- */
+.documents-inner { margin-top: 6px; }
+.documents-inner li { font-size: 12px; }
+.documents-actions { flex-wrap: nowrap; gap: 2px; }
+.document-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.document-line { display: block; min-height: 1.45em; }
+.document-line.document-hit, table.data tbody tr.document-hit { background: var(--hl); }
+.document-ln { display: inline-block; min-width: 3.2em; padding-right: 10px; margin-right: 8px; text-align: right;
+  color: var(--muted); border-right: 1px solid var(--line); user-select: none; }
+.document-table td.wrap { white-space: pre-wrap; }
+.document-leftover-tools { margin-top: 6px; }
+.document-notes { margin: 0; padding-left: 18px; }
+.document-side { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow: auto; }
+@media (max-width: 1100px) { .document-side { position: static; max-height: none; } }
+.document-item { cursor: pointer; align-items: flex-start; }
+.document-item:hover { background: var(--accent-soft); }
+.document-item.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.document-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.samples-synonyms { gap: 4px; }
+.audit-summary { font-size: 12px; overflow-wrap: anywhere; }
+.compare-arrow { color: var(--muted); padding: 0 4px; }
+.compare-old { color: var(--bad); text-decoration: line-through; }
+.compare-new { color: var(--ok); }
