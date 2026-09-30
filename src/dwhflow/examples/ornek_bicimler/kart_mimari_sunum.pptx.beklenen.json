@@ -1,0 +1,36 @@
+{
+  "aciklama": "PowerPoint: slayt sırası presentation.xml'den, madde metni, tablo ve konuşmacı notu",
+  "format": "pptx",
+  "datasets": [
+    "ODS_KART_ISLEM",
+    "DWH.F_KART_ISLEM",
+    "DWH.MART_KART_OZET",
+    "DWH.D_MUSTERI",
+    "EXP_BDDK_KART"
+  ],
+  "processes": [
+    "LOAD_F_KART_ISLEM",
+    "LOAD_MART_KART_OZET",
+    "EXP_BDDK"
+  ],
+  "links": [
+    [
+      "ODS_KART_ISLEM",
+      "DWH.F_KART_ISLEM"
+    ],
+    [
+      "DWH.F_KART_ISLEM",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.MART_KART_OZET",
+      "EXP_BDDK_KART"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

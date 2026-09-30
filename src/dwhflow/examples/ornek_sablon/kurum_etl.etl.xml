@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Kuruma özel ETL aracı dışa aktarımı (örnek). Okumak için sablonlar.yaml'daki "Kurum ETL XML" şablonu gerekir. -->
+<ex:Export xmlns:ex="http://ornek-banka.com.tr/etl/2024" surum="3" olusturma="2026-09-15T09:00:00">
+  <ex:Mappings>
+    <ex:Mapping id="EXT_KART" tip="extract">
+      <ex:Source name="SRC_KART_ISLEM" sistem="CB"/>
+      <ex:Target name="KART_ISLEM_YYYYMMDD.dat"/>
+      <ex:Description>Kart işlemleri günlük extract</ex:Description>
+    </ex:Mapping>
+    <ex:Mapping id="SP_ODS_KART" tip="merge">
+      <ex:Source name="STG_KART_ISLEM"/>
+      <ex:Target name="ODS_KART_ISLEM"/>
+    </ex:Mapping>
+    <ex:Mapping id="LOAD_F_KART_ISLEM" tip="append">
+      <ex:Source name="ODS_KART_ISLEM"/>
+      <ex:Source name="DWH.D_MUSTERI"/>
+      <ex:Target name="DWH.F_KART_ISLEM"/>
+      <ex:Description>Olgu tablosu; müşteri anahtarı boyuttan alınır</ex:Description>
+    </ex:Mapping>
+  </ex:Mappings>
+</ex:Export>

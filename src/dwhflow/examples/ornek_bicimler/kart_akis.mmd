@@ -1,0 +1,19 @@
+---
+title: Kredi kartı veri akışı
+---
+flowchart LR
+    %% Kaynaktan staging'e
+    SRC[(SRC_KART_ISLEM)] -->|EXT_KART| DAT[KART_ISLEM_YYYYMMDD.dat]
+    DAT -- TPT_STG_KART --> STG[(STG_KART_ISLEM)]
+    STG -.->|SP_ODS_KART| ODS[(ODS_KART_ISLEM)]
+
+    %% Olgu ve mart
+    ODS & DM[(DWH.D_MUSTERI)] ==> LF[[LOAD_F_KART_ISLEM]] --> F[(DWH.F_KART_ISLEM)]
+    F --> LM[[LOAD_MART_KART_OZET]] --> MART[(DWH.MART_KART_OZET)]
+    MART -->|EXP_BDDK| EXP["EXP_BDDK_KART"]
+
+    subgraph notlar [Notlar]
+        N1[Gece zinciri 01:00'de başlar]
+    end
+    classDef veri fill:#eef,stroke:#446;
+    class SRC,DAT veri

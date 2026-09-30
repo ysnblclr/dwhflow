@@ -331,7 +331,8 @@ class TestReaders:
         report = ingest_files([demo]).reports[0]
         assert report.reader == "DWHFlow modeli" and report.datasets > 10
 
-    @pytest.mark.parametrize("name,hint", [("a.doc", ".docx"), ("a.xls", ".xlsx"), ("a.vsdx", "Visio")])
+    # .doc/.xls/.vsdx artık okunuyor (ingest/formats); burada hâlâ okunamayan türler sınanır.
+    @pytest.mark.parametrize("name,hint", [("a.ktr", "Pentaho"), ("a.cpy", "copybook"), ("a.rar", "zip")])
     def test_unsupported_types_explained(self, tmp_path, name, hint):
         path = tmp_path / name
         path.write_bytes(b"x")

@@ -1,0 +1,29 @@
+{
+  "aciklama": ".xml uzantılı, sıkıştırılmış (base64 + deflate + URL) draw.io sayfası; içerik tespitiyle tanınmalı",
+  "format": "drawio",
+  "datasets": [
+    "SRC_MUSTERI",
+    "STG_MUSTERI",
+    "ODS_MUSTERI",
+    "DWH.D_MUSTERI"
+  ],
+  "processes": [
+    "LOAD_D_MUSTERI"
+  ],
+  "links": [
+    [
+      "SRC_MUSTERI",
+      "STG_MUSTERI"
+    ],
+    [
+      "STG_MUSTERI",
+      "ODS_MUSTERI"
+    ],
+    [
+      "ODS_MUSTERI",
+      "DWH.D_MUSTERI"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

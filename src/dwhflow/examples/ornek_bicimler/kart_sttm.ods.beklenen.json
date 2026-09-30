@@ -1,0 +1,35 @@
+{
+  "aciklama": "OpenDocument tablo: iki sayfa, milyonlarca tekrarlanan boş satır/sütun sınırla açılır",
+  "format": "ods",
+  "datasets": [
+    "KART_ISLEM_YYYYMMDD.dat",
+    "STG_KART_ISLEM",
+    "ODS_KART_ISLEM"
+  ],
+  "processes": [
+    "TPT_STG_KART",
+    "SP_ODS_KART",
+    "MFT_KART"
+  ],
+  "links": [
+    [
+      "KART_ISLEM_YYYYMMDD.dat",
+      "STG_KART_ISLEM"
+    ],
+    [
+      "STG_KART_ISLEM",
+      "ODS_KART_ISLEM"
+    ]
+  ],
+  "precedes": [
+    [
+      "MFT_KART",
+      "TPT_STG_KART"
+    ],
+    [
+      "TPT_STG_KART",
+      "SP_ODS_KART"
+    ]
+  ],
+  "subset": false
+}

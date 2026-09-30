@@ -1,0 +1,22 @@
+# Kuruma özel okuma şablonları örneği: proje ayarlarının "okuma" bölümüne eklenir.
+# Bu klasördeki kurum_etl.etl.xml ve kurum_isler.json dosyaları bu şablonlarla okunur;
+# şablon tanımlanmadan bu dosyalar "desteklenmiyor" raporlanır.
+# Alanların anlamı: src/dwhflow/ingest/formats/sablon.py
+okuma:
+  sablonlar:
+    - ad: "Kurum ETL XML"
+      dosya: "*.etl.xml"          # dosya adı deseni (büyük/küçük harf duyarsız)
+      tur: xml
+      kayit: ".//Mapping"         # ad alanları atılır: ex:Mapping değil Mapping
+      kaynak: "Source/@name"      # birden çok Source → birden çok kaynak
+      hedef: "Target/@name"
+      surec: "@id"
+      aciklama: "Description"
+    - ad: "Kurum iş listesi JSON"
+      dosya: "kurum_isler*.json"
+      tur: json
+      kayit: "jobs[*]"
+      kaynak: "steps[*].from"     # dizge ya da dizge listesi
+      hedef: "steps[*].to"
+      surec: "name"
+      aciklama: "steps[*].not"

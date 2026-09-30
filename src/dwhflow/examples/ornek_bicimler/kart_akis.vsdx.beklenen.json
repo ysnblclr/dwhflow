@@ -1,0 +1,42 @@
+{
+  "aciklama": "Visio: kalıplar şekli sınıflandırır, bağlayıcı etiketi job olur, ters oklu bağlayıcı doğru yöne çevrilir, arka plan sayfası ve başlık atlanır",
+  "format": "visio",
+  "datasets": [
+    "SRC_KART_ISLEM",
+    "KART_ISLEM_YYYYMMDD.dat",
+    "STG_KART_ISLEM",
+    "ODS_KART_ISLEM",
+    "SRC_MUSTERI",
+    "STG_MUSTERI",
+    "ODS_MUSTERI"
+  ],
+  "processes": [
+    "EXT_KART",
+    "TPT_STG_KART",
+    "SP_ODS_KART"
+  ],
+  "links": [
+    [
+      "SRC_KART_ISLEM",
+      "KART_ISLEM_YYYYMMDD.dat"
+    ],
+    [
+      "KART_ISLEM_YYYYMMDD.dat",
+      "STG_KART_ISLEM"
+    ],
+    [
+      "STG_KART_ISLEM",
+      "ODS_KART_ISLEM"
+    ],
+    [
+      "SRC_MUSTERI",
+      "STG_MUSTERI"
+    ],
+    [
+      "STG_MUSTERI",
+      "ODS_MUSTERI"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

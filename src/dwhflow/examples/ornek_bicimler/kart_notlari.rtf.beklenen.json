@@ -1,0 +1,40 @@
+{
+  "aciklama": "RTF: cp1254 \\'hh ve \\u kaçışları, stil sayfası başlığı, tablo; alt bilgi/alan kodu/resim yok sayılır",
+  "format": "rtf",
+  "datasets": [
+    "DWH.F_KART_ISLEM",
+    "DWH.D_MUSTERI",
+    "DWH.MART_KART_OZET",
+    "EXP_BDDK_KART"
+  ],
+  "processes": [
+    "LOAD_MART_KART_OZET",
+    "LOAD_F_KART_ISLEM",
+    "EXP_BDDK"
+  ],
+  "links": [
+    [
+      "DWH.F_KART_ISLEM",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.D_MUSTERI",
+      "DWH.MART_KART_OZET"
+    ],
+    [
+      "DWH.MART_KART_OZET",
+      "EXP_BDDK_KART"
+    ]
+  ],
+  "precedes": [
+    [
+      "LOAD_F_KART_ISLEM",
+      "LOAD_MART_KART_OZET"
+    ],
+    [
+      "LOAD_MART_KART_OZET",
+      "EXP_BDDK"
+    ]
+  ],
+  "subset": false
+}

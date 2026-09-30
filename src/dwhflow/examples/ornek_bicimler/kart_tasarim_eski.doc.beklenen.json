@@ -1,0 +1,31 @@
+{
+  "aciklama": "Word 97-2003 (.doc): LibreOffice yoksa parça tablosundan metin; numaralı başlıklar ve cümle kuralları",
+  "format": "doc",
+  "datasets": [
+    "SRC_KART_ISLEM",
+    "KART_ISLEM_YYYYMMDD.dat",
+    "STG_KART_ISLEM",
+    "ODS_KART_ISLEM"
+  ],
+  "processes": [
+    "EXT_KART",
+    "TPT_STG_KART",
+    "SP_ODS_KART"
+  ],
+  "links": [
+    [
+      "SRC_KART_ISLEM",
+      "KART_ISLEM_YYYYMMDD.dat"
+    ],
+    [
+      "KART_ISLEM_YYYYMMDD.dat",
+      "STG_KART_ISLEM"
+    ],
+    [
+      "STG_KART_ISLEM",
+      "ODS_KART_ISLEM"
+    ]
+  ],
+  "precedes": [],
+  "subset": false
+}

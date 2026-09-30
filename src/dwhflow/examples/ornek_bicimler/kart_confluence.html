@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Kart İşlemleri : Yükleme Akışı</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style type="text/css">body { font-family: Arial, sans-serif; } .confluenceTh { background: #f4f5f7; }</style>
+<script type="text/javascript">var not = "HACK_A tablosundan HACK_B tablosuna yüklenir.";</script>
+</head>
+<body class="theme-default aui-theme-default">
+<div id="page">
+<div id="main" class="aui-page-panel">
+<div id="main-header"><h1 id="title-heading" class="pagetitle">Kart İşlemleri : Yükleme Akışı</h1></div>
+<div id="content" class="view">
+<div class="page-metadata">Oluşturan: Ayşe Yılmaz, 15 Eyl 2026 tarihinde güncellendi</div>
+<div id="main-content" class="wiki-content group">
+
+<h2 id="kaynak">Kaynaktan staging'e</h2>
+<p>Her gece <strong>SRC_KART_ISLEM</strong> tablosundan KART_ISLEM_YYYYMMDD.dat dosyasına EXT_KART işiyle extract alınır.</p>
+<p>Dosya MFT_KART işiyle transfer edilir.</p>
+<div class="table-wrap"><table class="confluenceTable"><tbody>
+<tr><th class="confluenceTh">Job</th><th class="confluenceTh">Önceki İş</th></tr>
+<tr><td class="confluenceTd">TPT_STG_KART</td><td class="confluenceTd">MFT_KART</td></tr>
+<tr><td class="confluenceTd">SP_ODS_KART</td><td class="confluenceTd">TPT_STG_KART</td></tr>
+</tbody></table></div>
+
+<h2 id="ods">ODS ve olgu tablosu</h2>
+<!-- Confluence bölüm makrosu: tek hücreli sayfa düzeni tablosu -->
+<table class="wysiwyg-macro" data-macro-name="section"><tbody><tr><td>
+<p>STG_KART_ISLEM tablosundan ODS_KART_ISLEM tablosuna SP_ODS_KART prosedürüyle aktarılır.</p>
+</td></tr></tbody></table>
+<div class="table-wrap"><table class="confluenceTable"><tbody>
+<tr><th class="confluenceTh">Kaynak Tablo</th><th class="confluenceTh">Hedef Tablo</th><th class="confluenceTh">Job</th></tr>
+<tr><td class="confluenceTd">ODS_KART_ISLEM</td><td class="confluenceTd">DWH.F_KART_ISLEM</td><td class="confluenceTd" rowspan="2">LOAD_F_KART_ISLEM</td></tr>
+<tr><td class="confluenceTd">DWH.D_MUSTERI</td><td class="confluenceTd">DWH.F_KART_ISLEM</td></tr>
+</tbody></table></div>
+<div class="code panel pdl"><div class="codeContent panelContent pdl">
+<pre class="syntaxhighlighter-pre">-- kontrol sorgusu
+SELECT COUNT(*) FROM ODS_KART_ISLEM;</pre>
+</div></div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
