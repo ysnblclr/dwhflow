@@ -78,6 +78,26 @@ class ProjectState:
         }
 
 
+def apply_confidence_threshold(model: Model, threshold: float) -> int:
+    """Yalnız LLM'den gelen ve güveni eşiğin altındaki kenarları çıkarır (US-6 güven eşiği).
+
+    Yapısal bir kaynağı da olan kenarlar ve LLM dışı nesneler dokunulmadan kalır; LLM'in
+    tek başına eklediği ve kenarsız kalan taslak nesneler de çıkarılır. Çıkarılan kenar sayısını döner.
+    """
+    def weak(edge) -> bool:
+        return edge.is_llm_only and max((s.confidence for s in edge.sources), default=0.0) < threshold
+
+    before = len(model.edges)
+    model.edges = [edge for edge in model.edges if not weak(edge)]
+    connected = {e.source_node for e in model.edges} | {e.target_node for e in model.edges}
+    for collection in (model.datasets, model.processes):
+        for node_id in [i for i, node in collection.items()
+                        if node.status is Status.DRAFT and i not in connected
+                        and node.sources and all(s.is_llm for s in node.sources)]:
+            del collection[node_id]
+    return before - len(model.edges)
+
+
 def _reader_version() -> str:
     return f"{__version__}:" + ",".join(sorted(REGISTRY.formats))
 
@@ -150,14 +170,23 @@ class ProjectEngine:
                 client = self._llm_client(project) if use_llm else None
                 paths = [path for path, _ in project.current_documents()]
                 say(f"{len(paths)} doküman okunuyor")
+                llm_options = None
+                if client is not None:
+                    llm_options = {"user_prompt_dir": project.workspace.prompts_dir,
+                                   "mask": settings.yz.maske}
                 result = ingest_files(paths, llm=client, name=project.meta().get("ad", project.slug),
-                                      config=settings.ingest_config(), progress=say)
+                                      config=settings.ingest_config(), progress=say, llm_options=llm_options)
+                if client is not None and settings.yz.guven_esigi > 0:
+                    dropped = apply_confidence_threshold(result.model, settings.yz.guven_esigi)
+                    if result.llm is not None:
+                        result.llm["below_threshold"] = dropped
                 ingest = {
                     "documents": [r.as_dict() for r in result.reports],
                     "leftovers": [list(item) for item in result.leftovers],
                     "unrecognized_tables": [list(item) for item in result.unrecognized_tables],
                     "llm": result.llm, "errors": result.errors,
-                    "table_suggestions": self._table_suggestions(client, result, settings),
+                    "table_suggestions": self._table_suggestions(client, result, settings,
+                                                                 project.workspace.prompts_dir),
                 }
                 folder = self._cache_dir(project, key)
                 folder.mkdir(parents=True, exist_ok=True)
@@ -177,7 +206,7 @@ class ProjectEngine:
                                               "nesne": len(state.model.nodes)})
             return state
 
-    def _table_suggestions(self, client, result, settings) -> list[dict[str, Any]]:
+    def _table_suggestions(self, client, result, settings, prompts_dir) -> list[dict[str, Any]]:
         if client is None or not settings.yz.tablo_eslemesi or not result.unrecognized_tables:
             return []
         try:
@@ -185,7 +214,8 @@ class ProjectEngine:
         except ImportError:
             return []
         try:
-            items = suggest_for_unrecognized(client, result.unrecognized_tables)
+            items = suggest_for_unrecognized(client, result.unrecognized_tables,
+                                             user_prompt_dir=prompts_dir, mask=settings.yz.maske)
         except Exception:  # noqa: BLE001 - öneri üretilemezse tablo yine elle eşlenebilir
             return []
         for item in items:

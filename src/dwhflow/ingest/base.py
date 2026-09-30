@@ -321,13 +321,18 @@ class ModelBuilder:
             self._edge(EdgeKind.PRECEDES, first, second, source, draft)
 
     def column_flow(self, src_key: str, src_col: str, tgt_key: str, tgt_col: str, *,
-                    expression: str | None = None, source: SourceRef | None = None) -> None:
+                    expression: str | None = None, source: SourceRef | None = None,
+                    draft: bool = False) -> None:
+        """Kolon eşlemesi. Serbest metin/LLM kaynaklıysa ``draft=True``: yapısal bir kaynak
+        (STTM, SQL) aynı eşlemeyi de verirse onaylı olur."""
         s_col, t_col = self.column(src_key, src_col), self.column(tgt_key, tgt_col)
         if not (s_col and t_col):
             return
         entry = self.column_edges.setdefault(
-            (f"{src_key}#{s_col}", f"{tgt_key}#{t_col}"), {"expression": expression, "sources": []}
+            (f"{src_key}#{s_col}", f"{tgt_key}#{t_col}"),
+            {"expression": expression, "sources": [], "confirmed": False},
         )
+        entry["confirmed"] = entry["confirmed"] or not draft
         if source:
             entry["sources"].append(source)
 
@@ -475,7 +480,8 @@ class ModelBuilder:
                 continue
             edge = Edge(kind=EdgeKind.COLUMN_MAPS_TO, source=f"{source_id}#{s_col}",
                         target=f"{target_id}#{t_col}", expression=entry.get("expression"),
-                        sources=entry["sources"][:4])
+                        sources=entry["sources"][:4],
+                        status=Status.CONFIRMED if entry.get("confirmed", True) else Status.DRAFT)
             if edge.id not in known:
                 model.edges.append(edge)
                 known.add(edge.id)

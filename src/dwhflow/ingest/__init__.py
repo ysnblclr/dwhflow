@@ -201,11 +201,13 @@ def _read_one(path: Path, container: str | None, builder: ModelBuilder,
 
 def ingest_files(paths: list[Path], *, llm: Any = None, name: str = "dokuman-modeli",
                  config: IngestConfig | None = None,
-                 progress: Callable[[str], None] | None = None) -> IngestResult:
+                 progress: Callable[[str], None] | None = None,
+                 llm_options: dict[str, Any] | None = None) -> IngestResult:
     """Dokümanları okuyup tek bir model üretir.
 
     ``config`` verilmezse etkin (varsayılan) okuma yapılandırması kullanılır.
-    ``llm`` bir ``LLMClient`` ise, kuralların çözemediği paragraflar ona gönderilir.
+    ``llm`` bir ``LLMClient`` ise, kuralların çözemediği paragraflar ona gönderilir;
+    ``llm_options`` ``extract_with_llm``'e aktarılır (``user_prompt_dir``, ``mask``, ``version`` …).
     """
     config = config or active()
     say = progress or (lambda message: None)
@@ -229,7 +231,8 @@ def ingest_files(paths: list[Path], *, llm: Any = None, name: str = "dokuman-mod
             from ..llm import extract_with_llm
 
             say(f"LLM: {len(candidates)} paragraf")
-            stats = extract_with_llm(candidates, builder, {r.file: r for r in reports}, llm)
+            options = {"progress": say, **(llm_options or {})}
+            stats = extract_with_llm(candidates, builder, {r.file: r for r in reports}, llm, **options)
             llm_info = stats.as_dict()
 
         model = builder.build()
