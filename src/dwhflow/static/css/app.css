@@ -233,3 +233,66 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; border-radius: 2px
 .dropzone { border: 2px dashed var(--line); border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; }
 .dropzone:hover, .dropzone.hot, .dropzone:focus { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 iframe.viewer { width: 100%; height: calc(100vh - 160px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+
+/* ---- ayarlar düzenleyicisi (screens/_settings_editor.js) --------------- */
+.set-legend { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.set-intro { color: var(--muted); margin: 0 0 12px; max-width: 900px; }
+.set-sub { margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.set-sub h3 { margin: 0; }
+.set-chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-width: 0; }
+.set-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; line-height: 1.6; padding: 1px 3px 1px 9px;
+  border-radius: 11px; background: var(--accent-soft); border: 1px solid var(--accent); color: var(--ink);
+  max-width: 100%; overflow-wrap: anywhere; }
+.set-chip.builtin, .set-chip.plain { padding-right: 9px; }
+.set-chip.builtin { background: var(--line-2); border-color: var(--line); color: var(--muted); }
+.set-chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; line-height: 1.2;
+  padding: 0 5px; border-radius: 8px; }
+.set-chip button:hover { color: var(--bad); background: var(--bad-soft); }
+.set-chip-label { font-size: 11px; color: var(--muted); min-width: 52px; }
+.set-add { display: flex; gap: 6px; align-items: center; max-width: 440px; }
+.set-add input { flex: 1; }
+.set-role { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); gap: 6px 16px; padding: 12px 0;
+  border-top: 1px solid var(--line-2); }
+.set-role:first-child { border-top: 0; padding-top: 0; }
+@media (max-width: 720px) { .set-role { grid-template-columns: 1fr; } }
+.set-field-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.set-field-head .label { color: var(--muted); font-weight: 600; font-size: 12px; }
+.set-check { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.set-check label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.set-check .hint { flex-basis: 100%; color: var(--muted); font-size: 12px; padding-left: 23px; }
+.set-reset { font-size: 13px; padding: 0 5px; }
+.set-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--line-2); }
+.set-foot:empty { display: none; }
+.set-table select, .set-table input[type=text] { min-width: 110px; }
+.set-table td { vertical-align: middle; }
+.set-help { background: var(--line-2); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; }
+.set-help p { margin: 4px 0; }
+.set-help code { background: var(--card); padding: 0 4px; border-radius: 4px; }
+.set-details { margin-top: 12px; }
+.set-details > summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; padding: 4px 0; }
+.set-test { display: grid; gap: 8px; max-width: 640px; }
+.set-result { font-size: 13px; }
+.set-warn-text { color: var(--warn); font-weight: 600; }
+.set-diff td code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.set-yaml { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12.5px; min-height: 220px; }
+.set-system { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+
+/* ---- diyagramlar (screens/diagrams.js) ----------------------------------- */
+select.dia-quality { width: auto; }
+.dia-section { margin-top: 18px; }
+.dia-plan li { flex-wrap: wrap; }
+.dia-box { display: grid; gap: 8px; margin-bottom: 14px; }
+.dia-box h3 { margin: 4px 0 0; }
+.dia-add { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dia-add input[type=text] { flex: 1 1 160px; width: auto; }
+.dia-add select { width: auto; }
+.dia-budget { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.dia-budget .field { width: 190px; }
+.dia-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.dia-card { display: flex; flex-direction: column; gap: 6px; }
+.dia-card h2 { margin: 0; overflow-wrap: anywhere; }
+.dia-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.dia-actions { margin-top: auto; padding-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.dia-viewer { margin-bottom: 14px; }
+.dia-viewer .card-head h2 { overflow-wrap: anywhere; }
