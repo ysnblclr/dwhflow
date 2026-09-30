@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DSExport>
+<Header CharacterSet="CP1254" ExportingTool="IBM InfoSphere DataStage Export" ToolVersion="8" ServerName="ETLSRV01" ToolInstanceID="DWH_PROJ" MDISVersion="1.0" Date="2024-03-12" Time="10.21.07" ServerVersion="11.7"/>
+<Job Identifier="PX_LOAD_D_MUSTERI" DateModified="2024-03-05" TimeModified="16.05.33">
+   <Record Identifier="ROOT" Type="JobDefn" Readonly="0">
+      <Property Name="Name">PX_LOAD_D_MUSTERI</Property>
+      <Property Name="Description">ODS_MUSTERI -&gt; DWH.D_MUSTERI (SCD1, update then insert)</Property>
+      <Property Name="NextID">5</Property>
+      <Property Name="Container">V0</Property>
+      <Property Name="JobVersion">56.0.0</Property>
+      <Property Name="ControlAfterSubr">0</Property>
+      <Collection Name="Parameters" Type="Parameters">
+         <SubRecord>
+            <Property Name="Name">pOdsDb</Property>
+            <Property Name="Prompt">ODS veritabani</Property>
+            <Property Name="Default">$PROJDEF</Property>
+            <Property Name="ParamType">0</Property>
+            <Property Name="ParamLength">0</Property>
+            <Property Name="ParamScale">0</Property>
+         </SubRecord>
+         <SubRecord>
+            <Property Name="Name">PS_TERADATA</Property>
+            <Property Name="Prompt">Teradata baglanti seti</Property>
+            <Property Name="Default">(As pre-defined)</Property>
+            <Property Name="ParamType">0</Property>
+            <Property Name="ParamLength">0</Property>
+            <Property Name="ParamScale">0</Property>
+         </SubRecord>
+      </Collection>
+      <Property Name="IsTemplate">0</Property>
+      <Property Name="NLSLocale">,,,,</Property>
+      <Property Name="JobType">3</Property>
+      <Property Name="Category">\Jobs\Musteri\DWH</Property>
+      <Property Name="CenturyBreakYear">30</Property>
+      <Property Name="AllowMultipleInvocations">0</Property>
+      <Property Name="RelStagesInJobStatus">-1</Property>
+   </Record>
+   <Record Identifier="V0" Type="ContainerView" Readonly="0">
+      <Property Name="Name">Job</Property>
+      <Property Name="NextID">1</Property>
+      <Property Name="IsTopLevel">0</Property>
+      <Property Name="StageList">V0S0|V0S1|V0S2|V0A0</Property>
+      <Property Name="StageTypes">CCustomStage|CTransformerStage|CCustomStage|ID_PALETTEANNOTATION</Property>
+      <Property Name="NextStageID">4</Property>
+      <Property Name="SnapToGrid">1</Property>
+      <Property Name="ZoomValue">100</Property>
+   </Record>
+   <Record Identifier="V0A0" Type="Annotation" Readonly="0">
+      <Property Name="Name">V0A0</Property>
+      <Property Name="AnnotationText">SCD1: degisen musteri alanlari guncellenir, yeni musteriler eklenir.</Property>
+      <Property Name="TextFont">Tahoma\8</Property>
+      <Property Name="BackgroundColor">12648447</Property>
+      <Property Name="BorderVisible">1</Property>
+   </Record>
+   <Record Identifier="V0S0" Type="CustomStage" Readonly="0">
+      <Property Name="Name">SRC_ODS_MUSTERI</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="OutputPins">V0S0P1</Property>
+      <Property Name="StageType">TeradataConnectorPX</Property>
+      <Collection Name="Properties" Type="CustomProperty">
+         <SubRecord>
+            <Property Name="Name">XMLProperties</Property>
+            <Property Name="Value" PreFormatted="1">&lt;?xml version=&apos;1.0&apos; encoding=&apos;UTF-16&apos;?&gt;&lt;Properties version=&apos;1.1&apos;&gt;&lt;Common&gt;&lt;Context type=&apos;int&apos;&gt;1&lt;/Context&gt;&lt;Variant type=&apos;string&apos;&gt;V14&lt;/Variant&gt;&lt;DescriptorVersion type=&apos;string&apos;&gt;1.0&lt;/DescriptorVersion&gt;&lt;PartitionType type=&apos;int&apos;&gt;-1&lt;/PartitionType&gt;&lt;RCP modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/RCP&gt;&lt;/Common&gt;&lt;Connection&gt;&lt;TDPID modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.TDPID#]]&gt;&lt;/TDPID&gt;&lt;Username modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.USER#]]&gt;&lt;/Username&gt;&lt;Password modified=&apos;1&apos; type=&apos;protectedstring&apos;&gt;&lt;![CDATA[#PS_TERADATA.PASS#]]&gt;&lt;/Password&gt;&lt;/Connection&gt;&lt;Usage&gt;&lt;ReadMode type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/ReadMode&gt;&lt;TableName modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#pOdsDb#.ODS_MUSTERI]]&gt;&lt;/TableName&gt;&lt;GenerateSQL modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[1]]&gt;&lt;/GenerateSQL&gt;&lt;/Usage&gt;&lt;/Properties &gt;</Property>
+         </SubRecord>
+      </Collection>
+   </Record>
+   <Record Identifier="V0S0P1" Type="CustomOutput" Readonly="0">
+      <Property Name="Name">lnk_ods_musteri</Property>
+      <Property Name="Partner">V0S1|V0S1P1</Property>
+   </Record>
+   <Record Identifier="V0S1" Type="TransformerStage" Readonly="0">
+      <Property Name="Name">TRX_MUSTERI_KEY</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S1P1</Property>
+      <Property Name="OutputPins">V0S1P2</Property>
+      <Property Name="StageType">CTransformerStage</Property>
+      <Property Name="ValidationStatus">0</Property>
+      <Property Name="StageRunMode">0</Property>
+   </Record>
+   <Record Identifier="V0S1P1" Type="TrxInput" Readonly="0">
+      <Property Name="Name">lnk_ods_musteri</Property>
+      <Property Name="Partner">V0S0|V0S0P1</Property>
+      <Property Name="LinkType">1</Property>
+      <Property Name="MultiRow">0</Property>
+   </Record>
+   <Record Identifier="V0S1P2" Type="TrxOutput" Readonly="0">
+      <Property Name="Name">lnk_d_musteri</Property>
+      <Property Name="Partner">V0S2|V0S2P1</Property>
+      <Property Name="Reject">0</Property>
+      <Property Name="ErrorPin">0</Property>
+   </Record>
+   <Record Identifier="V0S2" Type="CustomStage" Readonly="0">
+      <Property Name="Name">TGT_D_MUSTERI</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S2P1</Property>
+      <Property Name="StageType">TeradataConnectorPX</Property>
+      <Collection Name="Properties" Type="CustomProperty">
+         <SubRecord>
+            <Property Name="Name">XMLProperties</Property>
+            <Property Name="Value" PreFormatted="1">&lt;?xml version=&apos;1.0&apos; encoding=&apos;UTF-16&apos;?&gt;&lt;Properties version=&apos;1.1&apos;&gt;&lt;Common&gt;&lt;Context type=&apos;int&apos;&gt;2&lt;/Context&gt;&lt;Variant type=&apos;string&apos;&gt;V14&lt;/Variant&gt;&lt;DescriptorVersion type=&apos;string&apos;&gt;1.0&lt;/DescriptorVersion&gt;&lt;PartitionType type=&apos;int&apos;&gt;-1&lt;/PartitionType&gt;&lt;RCP modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/RCP&gt;&lt;/Common&gt;&lt;Connection&gt;&lt;TDPID modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.TDPID#]]&gt;&lt;/TDPID&gt;&lt;Username modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.USER#]]&gt;&lt;/Username&gt;&lt;Password modified=&apos;1&apos; type=&apos;protectedstring&apos;&gt;&lt;![CDATA[#PS_TERADATA.PASS#]]&gt;&lt;/Password&gt;&lt;/Connection&gt;&lt;Usage&gt;&lt;WriteMode modified=&apos;1&apos; type=&apos;int&apos;&gt;&lt;![CDATA[6]]&gt;&lt;/WriteMode&gt;&lt;TableName modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[DWH.D_MUSTERI]]&gt;&lt;/TableName&gt;&lt;TableAction type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/TableAction&gt;&lt;GenerateSQL modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[1]]&gt;&lt;/GenerateSQL&gt;&lt;Session&gt;&lt;IsolationLevel type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/IsolationLevel&gt;&lt;/Session&gt;&lt;/Usage&gt;&lt;/Properties &gt;</Property>
+         </SubRecord>
+      </Collection>
+   </Record>
+   <Record Identifier="V0S2P1" Type="CustomInput" Readonly="0">
+      <Property Name="Name">lnk_d_musteri</Property>
+      <Property Name="Partner">V0S1|V0S1P2</Property>
+      <Property Name="LinkType">1</Property>
+   </Record>
+</Job>
+<Job Identifier="PX_LOAD_F_KART_ISLEM" DateModified="2024-03-06" TimeModified="11.47.20">
+   <Record Identifier="ROOT" Type="JobDefn" Readonly="0">
+      <Property Name="Name">PX_LOAD_F_KART_ISLEM</Property>
+      <Property Name="Description">ODS kart islemlerini musteri boyutuyla eslestirip DWH.F_KART_ISLEM'e ekler</Property>
+      <Property Name="NextID">5</Property>
+      <Property Name="Container">V0</Property>
+      <Property Name="JobVersion">56.0.0</Property>
+      <Property Name="ControlAfterSubr">0</Property>
+      <Collection Name="Parameters" Type="Parameters">
+         <SubRecord>
+            <Property Name="Name">pOdsDb</Property>
+            <Property Name="Prompt">ODS veritabani</Property>
+            <Property Name="Default">$PROJDEF</Property>
+            <Property Name="ParamType">0</Property>
+            <Property Name="ParamLength">0</Property>
+            <Property Name="ParamScale">0</Property>
+         </SubRecord>
+         <SubRecord>
+            <Property Name="Name">pIslemTarihi</Property>
+            <Property Name="Prompt">Islem tarihi (YYYYMMDD)</Property>
+            <Property Name="Default">20240101</Property>
+            <Property Name="ParamType">0</Property>
+            <Property Name="ParamLength">0</Property>
+            <Property Name="ParamScale">0</Property>
+         </SubRecord>
+      </Collection>
+      <Property Name="IsTemplate">0</Property>
+      <Property Name="NLSLocale">,,,,</Property>
+      <Property Name="JobType">3</Property>
+      <Property Name="Category">\Jobs\Kart\DWH</Property>
+      <Property Name="CenturyBreakYear">30</Property>
+      <Property Name="AllowMultipleInvocations">0</Property>
+      <Property Name="RelStagesInJobStatus">-1</Property>
+   </Record>
+   <Record Identifier="V0" Type="ContainerView" Readonly="0">
+      <Property Name="Name">Job</Property>
+      <Property Name="NextID">1</Property>
+      <Property Name="IsTopLevel">0</Property>
+      <Property Name="StageList">V0S0|V0S1|V0S2|V0S3|V0S4</Property>
+      <Property Name="StageTypes">CCustomStage|CCustomStage|CCustomStage|CTransformerStage|CCustomStage</Property>
+      <Property Name="NextStageID">5</Property>
+      <Property Name="SnapToGrid">1</Property>
+      <Property Name="ZoomValue">100</Property>
+   </Record>
+   <Record Identifier="V0S0" Type="CustomStage" Readonly="0">
+      <Property Name="Name">SRC_ODS_KART_ISLEM</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="OutputPins">V0S0P1</Property>
+      <Property Name="StageType">TeradataConnectorPX</Property>
+      <Collection Name="Properties" Type="CustomProperty">
+         <SubRecord>
+            <Property Name="Name">XMLProperties</Property>
+            <Property Name="Value" PreFormatted="1">&lt;?xml version=&apos;1.0&apos; encoding=&apos;UTF-16&apos;?&gt;&lt;Properties version=&apos;1.1&apos;&gt;&lt;Common&gt;&lt;Context type=&apos;int&apos;&gt;1&lt;/Context&gt;&lt;Variant type=&apos;string&apos;&gt;V14&lt;/Variant&gt;&lt;DescriptorVersion type=&apos;string&apos;&gt;1.0&lt;/DescriptorVersion&gt;&lt;PartitionType type=&apos;int&apos;&gt;-1&lt;/PartitionType&gt;&lt;RCP modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/RCP&gt;&lt;/Common&gt;&lt;Connection&gt;&lt;TDPID modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.TDPID#]]&gt;&lt;/TDPID&gt;&lt;Username modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.USER#]]&gt;&lt;/Username&gt;&lt;Password modified=&apos;1&apos; type=&apos;protectedstring&apos;&gt;&lt;![CDATA[#PS_TERADATA.PASS#]]&gt;&lt;/Password&gt;&lt;/Connection&gt;&lt;Usage&gt;&lt;ReadMode type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/ReadMode&gt;&lt;GenerateSQL modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/GenerateSQL&gt;&lt;SQL&gt;&lt;SelectStatement modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[SELECT k.ISLEM_ID, k.KART_NO, k.MUSTERI_ID, k.ISLEM_TARIHI, k.TUTAR, k.PARA_BIRIMI
+FROM #pOdsDb#.ODS_KART_ISLEM k
+WHERE k.ISLEM_TARIHI = CAST(&apos;#pIslemTarihi#&apos; AS DATE FORMAT &apos;YYYYMMDD&apos;)
+  AND k.DURUM = &apos;A&apos;]]&gt;&lt;/SelectStatement&gt;&lt;/SQL&gt;&lt;/Usage&gt;&lt;/Properties &gt;</Property>
+         </SubRecord>
+      </Collection>
+   </Record>
+   <Record Identifier="V0S0P1" Type="CustomOutput" Readonly="0">
+      <Property Name="Name">lnk_kart</Property>
+      <Property Name="Partner">V0S2|V0S2P1</Property>
+   </Record>
+   <Record Identifier="V0S1" Type="CustomStage" Readonly="0">
+      <Property Name="Name">REF_D_MUSTERI</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="OutputPins">V0S1P1</Property>
+      <Property Name="StageType">TeradataConnectorPX</Property>
+      <Collection Name="Properties" Type="CustomProperty">
+         <SubRecord>
+            <Property Name="Name">XMLProperties</Property>
+            <Property Name="Value" PreFormatted="1">&lt;?xml version=&apos;1.0&apos; encoding=&apos;UTF-16&apos;?&gt;&lt;Properties version=&apos;1.1&apos;&gt;&lt;Common&gt;&lt;Context type=&apos;int&apos;&gt;1&lt;/Context&gt;&lt;Variant type=&apos;string&apos;&gt;V14&lt;/Variant&gt;&lt;DescriptorVersion type=&apos;string&apos;&gt;1.0&lt;/DescriptorVersion&gt;&lt;PartitionType type=&apos;int&apos;&gt;-1&lt;/PartitionType&gt;&lt;RCP modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/RCP&gt;&lt;/Common&gt;&lt;Connection&gt;&lt;TDPID modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.TDPID#]]&gt;&lt;/TDPID&gt;&lt;Username modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.USER#]]&gt;&lt;/Username&gt;&lt;Password modified=&apos;1&apos; type=&apos;protectedstring&apos;&gt;&lt;![CDATA[#PS_TERADATA.PASS#]]&gt;&lt;/Password&gt;&lt;/Connection&gt;&lt;Usage&gt;&lt;ReadMode type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/ReadMode&gt;&lt;TableName modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[DWH.D_MUSTERI]]&gt;&lt;/TableName&gt;&lt;GenerateSQL modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[1]]&gt;&lt;/GenerateSQL&gt;&lt;LookupType type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/LookupType&gt;&lt;/Usage&gt;&lt;/Properties &gt;</Property>
+         </SubRecord>
+      </Collection>
+   </Record>
+   <Record Identifier="V0S1P1" Type="CustomOutput" Readonly="0">
+      <Property Name="Name">lnk_ref_musteri</Property>
+      <Property Name="Partner">V0S2|V0S2P2</Property>
+      <Property Name="LinkType">2</Property>
+   </Record>
+   <Record Identifier="V0S2" Type="CustomStage" Readonly="0">
+      <Property Name="Name">LKP_MUSTERI_KEY</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S2P1|V0S2P2</Property>
+      <Property Name="OutputPins">V0S2P3</Property>
+      <Property Name="StageType">PxLookup</Property>
+   </Record>
+   <Record Identifier="V0S2P1" Type="CustomInput" Readonly="0">
+      <Property Name="Name">lnk_kart</Property>
+      <Property Name="Partner">V0S0|V0S0P1</Property>
+      <Property Name="LinkType">1</Property>
+   </Record>
+   <Record Identifier="V0S2P2" Type="CustomInput" Readonly="0">
+      <Property Name="Name">lnk_ref_musteri</Property>
+      <Property Name="Partner">V0S1|V0S1P1</Property>
+      <Property Name="LinkType">2</Property>
+      <Property Name="ConditionNotMet">fail</Property>
+      <Property Name="LookupFail">reject</Property>
+   </Record>
+   <Record Identifier="V0S2P3" Type="CustomOutput" Readonly="0">
+      <Property Name="Name">lnk_eslesen</Property>
+      <Property Name="Partner">V0S3|V0S3P1</Property>
+   </Record>
+   <Record Identifier="V0S3" Type="TransformerStage" Readonly="0">
+      <Property Name="Name">TRX_TL_CEVIR</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S3P1</Property>
+      <Property Name="OutputPins">V0S3P2</Property>
+      <Property Name="StageType">CTransformerStage</Property>
+   </Record>
+   <Record Identifier="V0S3P1" Type="TrxInput" Readonly="0">
+      <Property Name="Name">lnk_eslesen</Property>
+      <Property Name="Partner">V0S2|V0S2P3</Property>
+      <Property Name="LinkType">1</Property>
+   </Record>
+   <Record Identifier="V0S3P2" Type="TrxOutput" Readonly="0">
+      <Property Name="Name">lnk_fact</Property>
+      <Property Name="Partner">V0S4|V0S4P1</Property>
+      <Property Name="Reject">0</Property>
+   </Record>
+   <Record Identifier="V0S4" Type="CustomStage" Readonly="0">
+      <Property Name="Name">TGT_F_KART_ISLEM</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S4P1</Property>
+      <Property Name="StageType">TeradataConnectorPX</Property>
+      <Collection Name="Properties" Type="CustomProperty">
+         <SubRecord>
+            <Property Name="Name">XMLProperties</Property>
+            <Property Name="Value" PreFormatted="1">&lt;?xml version=&apos;1.0&apos; encoding=&apos;UTF-16&apos;?&gt;&lt;Properties version=&apos;1.1&apos;&gt;&lt;Common&gt;&lt;Context type=&apos;int&apos;&gt;2&lt;/Context&gt;&lt;Variant type=&apos;string&apos;&gt;V14&lt;/Variant&gt;&lt;DescriptorVersion type=&apos;string&apos;&gt;1.0&lt;/DescriptorVersion&gt;&lt;PartitionType type=&apos;int&apos;&gt;-1&lt;/PartitionType&gt;&lt;RCP modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/RCP&gt;&lt;/Common&gt;&lt;Connection&gt;&lt;TDPID modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.TDPID#]]&gt;&lt;/TDPID&gt;&lt;Username modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[#PS_TERADATA.USER#]]&gt;&lt;/Username&gt;&lt;Password modified=&apos;1&apos; type=&apos;protectedstring&apos;&gt;&lt;![CDATA[#PS_TERADATA.PASS#]]&gt;&lt;/Password&gt;&lt;/Connection&gt;&lt;Usage&gt;&lt;WriteMode type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/WriteMode&gt;&lt;TableName modified=&apos;1&apos; type=&apos;string&apos;&gt;&lt;![CDATA[DWH.F_KART_ISLEM]]&gt;&lt;/TableName&gt;&lt;TableAction type=&apos;int&apos;&gt;&lt;![CDATA[0]]&gt;&lt;/TableAction&gt;&lt;GenerateSQL modified=&apos;1&apos; type=&apos;bool&apos;&gt;&lt;![CDATA[1]]&gt;&lt;/GenerateSQL&gt;&lt;/Usage&gt;&lt;/Properties &gt;</Property>
+         </SubRecord>
+      </Collection>
+   </Record>
+   <Record Identifier="V0S4P1" Type="CustomInput" Readonly="0">
+      <Property Name="Name">lnk_fact</Property>
+      <Property Name="Partner">V0S3|V0S3P2</Property>
+      <Property Name="LinkType">1</Property>
+   </Record>
+</Job>
+<Job Identifier="SEQ_KART_DWH" DateModified="2024-03-06" TimeModified="12.10.02">
+   <Record Identifier="ROOT" Type="JobDefn" Readonly="0">
+      <Property Name="Name">SEQ_KART_DWH</Property>
+      <Property Name="Description">Musteri boyutu, ardindan kart olgu tablosu</Property>
+      <Property Name="NextID">5</Property>
+      <Property Name="Container">V0</Property>
+      <Property Name="JobVersion">56.0.0</Property>
+      <Property Name="ControlAfterSubr">0</Property>
+      <Collection Name="Parameters" Type="Parameters">
+         <SubRecord>
+            <Property Name="Name">pIslemTarihi</Property>
+            <Property Name="Prompt">Islem tarihi (YYYYMMDD)</Property>
+            <Property Name="Default">20240101</Property>
+            <Property Name="ParamType">0</Property>
+            <Property Name="ParamLength">0</Property>
+            <Property Name="ParamScale">0</Property>
+         </SubRecord>
+      </Collection>
+      <Property Name="IsTemplate">0</Property>
+      <Property Name="NLSLocale">,,,,</Property>
+      <Property Name="JobType">2</Property>
+      <Property Name="Category">\Jobs\Kart\Sequences</Property>
+      <Property Name="CenturyBreakYear">30</Property>
+      <Property Name="AllowMultipleInvocations">0</Property>
+      <Property Name="RelStagesInJobStatus">-1</Property>
+   </Record>
+   <Record Identifier="V0" Type="ContainerView" Readonly="0">
+      <Property Name="Name">Job</Property>
+      <Property Name="NextID">1</Property>
+      <Property Name="IsTopLevel">0</Property>
+      <Property Name="StageList">V0S0|V0S1|V0S2|V0S3</Property>
+      <Property Name="StageTypes">CJSUserVarsActivity|CJSJobActivity|CJSJobActivity|CJSTerminatorActivity</Property>
+      <Property Name="NextStageID">4</Property>
+      <Property Name="SnapToGrid">1</Property>
+      <Property Name="ZoomValue">100</Property>
+   </Record>
+   <Record Identifier="V0S0" Type="JSUserVarsActivity" Readonly="0">
+      <Property Name="Name">UV_TARIH</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="OutputPins">V0S0P1</Property>
+      <Property Name="StageType">CJSUserVarsActivity</Property>
+   </Record>
+   <Record Identifier="V0S0P1" Type="JSActivityOutput" Readonly="0">
+      <Property Name="Name">Devam</Property>
+      <Property Name="Partner">V0S1|V0S1P1</Property>
+      <Property Name="ConditionType">0</Property>
+   </Record>
+   <Record Identifier="V0S1" Type="JSJobActivity" Readonly="0">
+      <Property Name="Name">JA_LOAD_D_MUSTERI</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S1P1</Property>
+      <Property Name="OutputPins">V0S1P2</Property>
+      <Property Name="StageType">CJSJobActivity</Property>
+      <Property Name="Jobname">PX_LOAD_D_MUSTERI</Property>
+      <Property Name="ExecutionAction">0</Property>
+   </Record>
+   <Record Identifier="V0S1P1" Type="JSActivityInput" Readonly="0">
+      <Property Name="Name">Devam</Property>
+      <Property Name="Partner">V0S0|V0S0P1</Property>
+   </Record>
+   <Record Identifier="V0S1P2" Type="JSActivityOutput" Readonly="0">
+      <Property Name="Name">Basarili</Property>
+      <Property Name="Partner">V0S2|V0S2P1</Property>
+      <Property Name="ConditionType">2</Property>
+      <Property Name="ExpressionText">Executed OK</Property>
+   </Record>
+   <Record Identifier="V0S2" Type="JSJobActivity" Readonly="0">
+      <Property Name="Name">JA_LOAD_F_KART_ISLEM</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S2P1</Property>
+      <Property Name="OutputPins">V0S2P2</Property>
+      <Property Name="StageType">CJSJobActivity</Property>
+      <Property Name="Jobname">PX_LOAD_F_KART_ISLEM</Property>
+      <Property Name="ExecutionAction">2</Property>
+   </Record>
+   <Record Identifier="V0S2P1" Type="JSActivityInput" Readonly="0">
+      <Property Name="Name">Basarili</Property>
+      <Property Name="Partner">V0S1|V0S1P2</Property>
+   </Record>
+   <Record Identifier="V0S2P2" Type="JSActivityOutput" Readonly="0">
+      <Property Name="Name">Hata</Property>
+      <Property Name="Partner">V0S3|V0S3P1</Property>
+      <Property Name="ConditionType">3</Property>
+      <Property Name="ExpressionText">Failed</Property>
+   </Record>
+   <Record Identifier="V0S3" Type="JSTerminatorActivity" Readonly="0">
+      <Property Name="Name">TA_DURDUR</Property>
+      <Property Name="NextID">2</Property>
+      <Property Name="InputPins">V0S3P1</Property>
+      <Property Name="StageType">CJSTerminatorActivity</Property>
+      <Property Name="SendStopRequests">1</Property>
+   </Record>
+   <Record Identifier="V0S3P1" Type="JSActivityInput" Readonly="0">
+      <Property Name="Name">Hata</Property>
+      <Property Name="Partner">V0S2|V0S2P2</Property>
+   </Record>
+</Job>
+</DSExport>

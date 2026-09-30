@@ -1,0 +1,37 @@
+{
+  "aciklama": "Airflow DAG'ı (.py) ast ile, çalıştırılmadan okunmalı: >> listeli, chain (TaskGroup kök/yaprakları), @task, ExternalTaskSensor sırası; Jinja'lı ve liste halindeki SQL soyu (DELETE akış sayılmaz), SQLCheckOperator bağ üretmez, .sql dosya yolu yalnız not",
+  "format": "airflow",
+  "datasets": ["ODS_MUSTERI", "DWH.D_MUSTERI", "ODS_KART_ISLEM", "DWH.F_KART_ISLEM", "DWH.MART_KART_OZET", "EXP_BDDK_KART"],
+  "processes": [
+    "basla", "ods_kart_bekle", "sp_ods_kart", "load_d_musteri", "load_f_kart_islem", "load_mart_kart_ozet",
+    "kontroller.dq_f_kart_islem", "kontroller.dq_mart_kart_ozet", "exp_bddk", "bddk_dosya_gonder",
+    "istatistik_topla", "mart_ozeti_bildir", "bitis"
+  ],
+  "links": [
+    ["ODS_MUSTERI", "DWH.D_MUSTERI"],
+    ["ODS_KART_ISLEM", "DWH.F_KART_ISLEM"],
+    ["DWH.D_MUSTERI", "DWH.F_KART_ISLEM"],
+    ["DWH.F_KART_ISLEM", "DWH.MART_KART_OZET"],
+    ["DWH.D_MUSTERI", "DWH.MART_KART_OZET"],
+    ["DWH.MART_KART_OZET", "EXP_BDDK_KART"]
+  ],
+  "precedes": [
+    ["basla", "ods_kart_bekle"],
+    ["basla", "load_d_musteri"],
+    ["sp_ods_kart", "ods_kart_bekle"],
+    ["ods_kart_bekle", "load_f_kart_islem"],
+    ["load_d_musteri", "load_f_kart_islem"],
+    ["load_f_kart_islem", "load_mart_kart_ozet"],
+    ["load_mart_kart_ozet", "kontroller.dq_f_kart_islem"],
+    ["load_mart_kart_ozet", "kontroller.dq_mart_kart_ozet"],
+    ["kontroller.dq_f_kart_islem", "exp_bddk"],
+    ["kontroller.dq_f_kart_islem", "istatistik_topla"],
+    ["kontroller.dq_mart_kart_ozet", "exp_bddk"],
+    ["kontroller.dq_mart_kart_ozet", "istatistik_topla"],
+    ["exp_bddk", "bddk_dosya_gonder"],
+    ["bddk_dosya_gonder", "bitis"],
+    ["istatistik_topla", "mart_ozeti_bildir"],
+    ["mart_ozeti_bildir", "bitis"]
+  ],
+  "subset": false
+}

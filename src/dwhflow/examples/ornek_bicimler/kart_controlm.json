@@ -1,0 +1,140 @@
+{
+  "Defaults": {
+    "Application": "DWH",
+    "SubApplication": "MUSTERI",
+    "RunAs": "etluser",
+    "Host": "etlhost01",
+    "Job": {
+      "When": {
+        "Months": ["ALL"]
+      }
+    }
+  },
+  "DWH_MUSTERI_GECE": {
+    "Type": "Folder",
+    "ControlmServer": "CTM_PROD",
+    "Description": "Musteri hatti gece zinciri (kaynak -> staging -> ODS -> boyut)",
+    "SiteStandard": "BANKA_DWH_STD",
+    "OrderMethod": "Automatic",
+    "CreatedBy": "ctmadm",
+    "EXT_MUSTERI": {
+      "Type": "Job:Command",
+      "Command": "/etl/bin/ext_musteri.sh %%ODATE",
+      "Description": "Kart sistemindeki SRC_MUSTERI tablosundan gunluk extract",
+      "Priority": "Medium",
+      "When": {
+        "WeekDays": ["ALL"],
+        "FromTime": "0030",
+        "ToTime": ">"
+      },
+      "Rerun": {
+        "Times": "2"
+      },
+      "eventsToAdd": {
+        "Type": "AddEvents",
+        "Events": [
+          {"Event": "EXT_MUSTERI-TO-TPT_STG_MUSTERI"}
+        ]
+      },
+      "IfBase:Folder:CompletionStatus_0": {
+        "Type": "If:CompletionStatus",
+        "CompletionStatus": "NOTOK",
+        "Mail_0": {
+          "Type": "Action:Mail",
+          "Subject": "EXT_MUSTERI hata aldi",
+          "To": "dwh-ops@banka.com.tr",
+          "AttachOutput": true
+        }
+      }
+    },
+    "TPT_STG_MUSTERI": {
+      "Type": "Job:Command",
+      "Command": "tbuild -f /etl/tpt/stg_musteri.tpt -v /etl/tpt/vars/tdprod.txt -j TPT_STG_MUSTERI_%%ODATE",
+      "Description": "Musteri extract dosyasini STG_MUSTERI tablosuna yukler",
+      "eventsToWaitFor": {
+        "Type": "WaitForEvents",
+        "Events": [
+          {"Event": "EXT_MUSTERI-TO-TPT_STG_MUSTERI"}
+        ]
+      },
+      "eventsToDelete": {
+        "Type": "DeleteEvents",
+        "Events": [
+          {"Event": "EXT_MUSTERI-TO-TPT_STG_MUSTERI"}
+        ]
+      }
+    },
+    "SP_ODS_MUSTERI": {
+      "Type": "Job:Database:StoredProcedure",
+      "ConnectionProfile": "TD_DWH_PROD",
+      "Schema": "ODS",
+      "StoredProcedure": "SP_ODS_MUSTERI",
+      "Parameters": [
+        {"p_islem_tarihi": "%%$ODATE"}
+      ],
+      "Description": "STG_MUSTERI -> ODS_MUSTERI merge",
+      "Host": "dbagent01",
+      "eventsToAdd": {
+        "Type": "AddEvents",
+        "Events": [
+          {"Event": "ODS_MUSTERI-HAZIR"}
+        ]
+      }
+    },
+    "LOAD_D_MUSTERI": {
+      "Type": "Job:Command",
+      "Command": "dsjob -run -jobstatus -param pOdsDb=ODS DWH_PROJ PX_LOAD_D_MUSTERI",
+      "Description": "DWH.D_MUSTERI boyut yuklemesi (DataStage)",
+      "Host": "dshost01",
+      "RunAs": "dsadm",
+      "Critical": true,
+      "When": {
+        "WeekDays": ["MON", "TUE", "WED", "THU", "FRI"],
+        "FromTime": "0130",
+        "WeekDaysCalendar": "TR_IS_GUNLERI"
+      },
+      "eventsToWaitFor": {
+        "Type": "WaitForEvents",
+        "Events": [
+          {"Event": "ODS_MUSTERI-HAZIR"},
+          "OR",
+          {"Event": "MUSTERI-ELLE-ONAY"}
+        ]
+      },
+      "eventsToAdd": {
+        "Type": "AddEvents",
+        "Events": [
+          {"Event": "LOAD_D_MUSTERI-OK"}
+        ]
+      }
+    },
+    "KONTROL": {
+      "Type": "SubFolder",
+      "Description": "Veri kalitesi kontrolleri",
+      "DQ_D_MUSTERI": {
+        "Type": "Job:Database:SQLScript",
+        "ConnectionProfile": "TD_DWH_PROD",
+        "SQLScript": "/etl/dq/dq_d_musteri.sql",
+        "Description": "D_MUSTERI satir sayisi ve anahtar tekilligi kontrolu",
+        "Host": "dbagent01",
+        "eventsToWaitFor": {
+          "Type": "WaitForEvents",
+          "Events": [
+            {"Event": "LOAD_D_MUSTERI-OK"},
+            {"Event": "DQ_D_MUSTERI-OK", "Date": "PreviousOrderDate"}
+          ]
+        },
+        "eventsToAdd": {
+          "Type": "AddEvents",
+          "Events": [
+            {"Event": "DQ_D_MUSTERI-OK"}
+          ]
+        }
+      }
+    },
+    "Akis_Staging_ODS": {
+      "Type": "Flow",
+      "Sequence": ["TPT_STG_MUSTERI", "SP_ODS_MUSTERI"]
+    }
+  }
+}
